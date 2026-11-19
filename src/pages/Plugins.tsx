@@ -83,7 +83,8 @@ function PluginIcon({ plugin }: { plugin: InstalledPlugin }) {
 
 export default function Plugins({ onBack, focusId }: { onBack: () => void; focusId?: string }) {
   const host = useHost();
-  const plugins = host.plugins.filter(p => host.prefs.mature || !p.meta.mature);
+  // 插件管理中心展示全部已安装插件，成人内容过滤只作用于内容来源（home/search），不应用于管理列表。
+  const plugins = host.plugins;
 
   return (
     <div className="hpp-page hpp-plugins-page">
