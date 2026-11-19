@@ -19,7 +19,7 @@ export function ArticleList({ plugin, onBack, open }: { plugin: InstalledPlugin;
     } catch (e) { setError(pluginError(e)); } finally { setBusy(false); }
   };
   useEffect(() => { void load(); }, []);
-  return <BrowseFrame title={`${plugin.meta.name} · 图文`} tools={<button onClick={onBack}>返回</button>}><Notice error={error}/>
+  return <BrowseFrame title={`${plugin.meta.name} · 图文`} onBack={onBack}><Notice error={error}/>
     {page?.items.map(item => <ArticleCard key={item.id} cover={item.cover ? covers[coverIndex++] : undefined} item={item} open={() => open(item.id)}/>)}
     {busy && <p role="status">正在读取图文…</p>}{error && <button onClick={() => void load()}>重试图文</button>}{page && !page.items.length && <p>暂无图文</p>}
     {page?.next && <button disabled={busy} onClick={() => void load(page.next || undefined)}>更多图文</button>}
@@ -34,7 +34,7 @@ export default function ArticlePage({ plugin, articleId, onBack, openMedia, acti
   const request = usePluginRequests(), [detail, setDetail] = useState<ArticleDetail | null>(null), [error, setError] = useState("");
   const [play, setPlay] = useState(false);
   useEffect(() => { void request<ArticleDetail>("call", { id: plugin.meta.id, method: "articles.getDetail", args: { id: articleId } }).then(setDetail).catch(e => setError(pluginError(e))); }, []);
-  return <BrowseFrame title={detail?.title || "图文详情"} tools={<button onClick={onBack}>返回</button>}><Notice error={error}/>
+  return <BrowseFrame title={detail?.title || "图文详情"} onBack={onBack}><Notice error={error}/>
     {detail && <article className="hpp-article-detail"><p className="hpp-muted">{plugin.meta.name}{detail.author ? ` · ${detail.author.name}` : ""}{detail.publishedAt !== undefined ? ` · ${new Date(detail.publishedAt).toLocaleDateString()}` : ""}</p>
       {detail.contentHtml !== undefined ? <ArticleHtml plugin={plugin} html={detail.contentHtml}/> : <p className="hpp-article-text">{detail.contentText || detail.summary}</p>}
       {!!detail.streams?.length && (play ? <ContentPlayer plugin={plugin} action="article.prepare" contentId={articleId} active={active}/> : <button onClick={() => setPlay(true)}>播放文内视频</button>)}

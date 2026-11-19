@@ -185,7 +185,7 @@
 .hpp-picker-list strong{font-size:13px}
 .hpp-picker-list small{display:block;font-size:10px;color:var(--p-mut);margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hpp-picker-list input{width:16px;height:16px;accent-color:var(--p-primary)}
-.hpp-source-picker footer{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #8882;padding-top:16px}
+.hpp-source-picker footer{display:flex;justify-content:center;align-items:center;gap:12px;border-top:1px solid #8882;padding-top:16px}
 .hpp-page button.hpp-source-setting{display:flex;gap:13px;width:100%;padding:14px;text-align:left;background:var(--p-s2)}
 .hpp-source-setting>span{flex:1}.hpp-source-setting strong{display:block;font-weight:600;font-size:13px}.hpp-source-setting small{display:block;margin-top:5px;color:var(--p-mut);font-size:11px}
 .hpp-now-playing,.hpp-home-navigation,.hpp-home-hint,.hpp-content-settings{transition:opacity .2s}

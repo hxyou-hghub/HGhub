@@ -14,8 +14,19 @@ import { CAT_ICONS, IGrid, IChevR, IBack, ISearch, IClose, ISettings, IFireF } f
 const categoryTrees = new Map<string, { revision: string; tree: Category[] }>();
 
 export type OpenMedia = (pluginId:string,mediaId:string)=>void;
-export function BrowseFrame({title,children,tools}:{title:string;children:React.ReactNode;tools?:React.ReactNode}) {
-  return <div className="hpp-page"><header className="hpp-header"><div><h1>{title}</h1></div><div className="hpp-header-tools">{tools}</div></header><div className="hpp-scroll"><div className="hpp-content">{children}</div></div></div>;
+export function BrowseFrame({title,children,tools,onBack}:{title:string;children:React.ReactNode;tools?:React.ReactNode;onBack?:()=>void}) {
+  return (
+    <div className="hpp-page">
+      <header className="hpp-header">
+        {onBack && <button aria-label="返回" onClick={onBack}><IBack size={20} /></button>}
+        <div className="flex items-center gap-2">
+          <h1>{title}</h1>
+        </div>
+        {tools && <div className="hpp-header-tools">{tools}</div>}
+      </header>
+      <div className="hpp-scroll"><div className="hpp-content">{children}</div></div>
+    </div>
+  );
 }
 export function Notice({error}:{error:string}){return error?<p role="alert" className="hpp-error">{error}</p>:null;}
 export function EmptySources({manage}:{manage:()=>void}) {return <div className="hpp-empty"><h2>从一个插件开始</h2><p>导入你选择的数据源，发现影视、短剧与更多内容。</p><button className="primary" onClick={manage}>管理插件</button></div>;}
@@ -26,7 +37,7 @@ function Scope({kind,plugins}:{kind:"home"|"search";plugins:InstalledPlugin[]}) 
 }
 export function PluginRecommendations({plugin,open,openSection,onBack}:{plugin:InstalledPlugin;open:OpenMedia;openSection:OpenSection;onBack:()=>void}) {
   const [refresh,setRefresh]=useState(0);
-  return <BrowseFrame title={plugin.meta.name + " · 推荐分区"} tools={<><button onClick={()=>setRefresh(n=>n+1)}>刷新推荐</button><button onClick={onBack}>返回</button></>}><HomeSource plugin={plugin} open={open} openSection={openSection} refreshToken={refresh}/></BrowseFrame>;
+  return <BrowseFrame title={plugin.meta.name + " · 推荐分区"} onBack={onBack} tools={<button onClick={()=>setRefresh(n=>n+1)}>刷新推荐</button>}><HomeSource plugin={plugin} open={open} openSection={openSection} refreshToken={refresh}/></BrowseFrame>;
 }
 function HomeSource({plugin:p,open,openSection,refreshToken}:{plugin:InstalledPlugin;open:OpenMedia;openSection:OpenSection;refreshToken:number}) {
   const list=usePagedPlugin<Section>({plugin:p,method:"home.getSections",limit:20}),lastRefresh=useRef(refreshToken);

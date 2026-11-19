@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 /* ——— 头像 ——— */
 export function Avatar({ hue = 250, icon, name, size = 40, ring = false, className = "" }: {
   hue?: number; icon?: React.ReactNode; name?: string; size?: number; ring?: boolean; className?: string;
@@ -38,20 +39,21 @@ export function Sheet({ open, onClose, children, z = "z-40" }: { open: boolean; 
 }
 
 /* ——— 居中弹窗 ——— */
-export function Modal({ open, onClose, children, width = 340 }: { open: boolean; onClose: () => void; children: React.ReactNode; width?: number }) {
+export function Modal({ open, onClose, children, width = 480 }: { open: boolean; onClose: () => void; children: React.ReactNode; width?: number }) {
   const [render, setRender] = useState(open);
   useEffect(() => {
     if (open) setRender(true);
     else { const t = window.setTimeout(() => setRender(false), 200); return () => window.clearTimeout(t); }
   }, [open]);
   if (!render) return null;
-  return (
-    <div className="absolute inset-0 z-[55] flex items-center justify-center p-6">
-      <div className={`absolute inset-0 bg-black/65 backdrop-blur-sm ${open ? "a-fade" : "opacity-0 transition-opacity"}`} onClick={onClose} />
-      <div className={`relative bg-s3 rounded-(--r-lg) elev-3 ${open ? "a-scale-in" : "opacity-0 scale-90 transition-all"}`} style={{ width, maxWidth: "100%" }}>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm ${open ? "a-fade" : "opacity-0 transition-opacity"}`} onClick={onClose} />
+      <div className={`relative bg-s1 text-on rounded-2xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden ${open ? "a-scale-in" : "opacity-0 scale-90 transition-all"}`} style={{ width, maxWidth: "100%", maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -64,4 +66,113 @@ export function Toggle({ on, onChange, label, disabled = false }: { on: boolean;
     </button>
   );
 }
+
+/* ——— 提示框 Tooltip ——— */
+export function Tooltip({
+  text,
+  children,
+  className = "",
+}: {
+  text?: React.ReactNode;
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLSpanElement>(null);
+  const [pos, setPos] = useState<{ x: number; y: number; placement: "top" | "bottom" }>({
+    x: 0,
+    y: 0,
+    placement: "bottom",
+  });
+
+  const updatePos = () => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const placement = spaceAbove >= 90 && spaceAbove >= spaceBelow ? "top" : "bottom";
+
+    const tooltipWidth = 260;
+    const halfWidth = tooltipWidth / 2;
+    let x = rect.left + rect.width / 2;
+    if (x - halfWidth < 16) {
+      x = 16 + halfWidth;
+    } else if (x + halfWidth > window.innerWidth - 16) {
+      x = window.innerWidth - 16 - halfWidth;
+    }
+
+    const y = placement === "top" ? rect.top - 8 : rect.bottom + 8;
+    setPos({ x, y, placement });
+  };
+
+  const show = () => {
+    updatePos();
+    setOpen(true);
+  };
+  const hide = () => {
+    setOpen(false);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const handleScroll = () => updatePos();
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [open]);
+
+  if (!text) return <>{children}</>;
+
+  return (
+    <>
+      <span
+        ref={triggerRef}
+        className={`hpp-tooltip-wrapper ${className}`}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
+        tabIndex={0}
+        role="tooltip"
+        aria-label={typeof text === "string" ? text : undefined}
+      >
+        {children || (
+          <span
+            className="hpp-help-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (open) hide();
+              else show();
+            }}
+            aria-label="查看提示"
+          >
+            ?
+          </span>
+        )}
+      </span>
+      {open &&
+        createPortal(
+          <div
+            className={`hpp-tooltip-portal ${pos.placement}`}
+            style={{
+              position: "fixed",
+              left: `${pos.x}px`,
+              top: pos.placement === "bottom" ? `${pos.y}px` : undefined,
+              bottom: pos.placement === "top" ? `${window.innerHeight - pos.y}px` : undefined,
+              transform: "translateX(-50%)",
+              zIndex: 99999,
+            }}
+          >
+            {text}
+          </div>,
+          document.body
+        )}
+    </>
+  );
+}
+
 

@@ -5,7 +5,8 @@
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "tauri dev",
+    "dev:web": "vite",
     "build": "tsc --noEmit && tsc --project tsconfig.tests.json && vite build",
     "preview": "vite preview",
     "docs:build": "node scripts/build-docs.mjs",

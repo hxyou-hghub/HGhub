@@ -56,7 +56,7 @@ function Application() {
 }
 function ContentRoute({ page, active }: { page: Extract<import("./store").Page, { kind: "live" | "articles" | "article" | "feed" | "recommendations" }>; active: boolean }) {
   const host = useHost(), app = useStore(), plugin = host.sources.find(p => p.meta.id === page.pluginId);
-  if (!plugin) return <BrowseFrame title="来源不可用" tools={<button onClick={app.pop}>返回</button>}><p>请重新启用该来源。</p></BrowseFrame>;
+  if (!plugin) return <BrowseFrame title="来源不可用" onBack={app.pop}><p>请重新启用该来源。</p></BrowseFrame>;
   const key = plugin.meta.id + plugin.revision;
   if (page.kind === "recommendations") return <PluginRecommendations key={key} plugin={plugin} open={(pluginId,mediaId)=>app.push({kind:"media",pluginId,mediaId})} openSection={(pluginId,sectionId,title)=>app.push({kind:"section",pluginId,sectionId,title})} onBack={app.pop}/>;
   if (page.kind === "feed") return <FeedPage key={key} plugin={plugin} active={active} onBack={app.pop} openMedia={mediaId => app.push({ kind: "media", pluginId: plugin.meta.id, mediaId })}/>;
@@ -66,11 +66,11 @@ function ContentRoute({ page, active }: { page: Extract<import("./store").Page, 
 }
 function SectionRoute({pluginId,sectionId,title,open,onBack}:{pluginId:string;sectionId:string;title?:string;open:(pluginId:string,mediaId:string)=>void;onBack:()=>void}) {
   const plugin=useHost().sources.find(p=>p.meta.id===pluginId);
-  return plugin?<SectionPage key={pluginId+sectionId+plugin.revision} plugin={plugin} sectionId={sectionId} title={title} open={open} onBack={onBack}/>:<BrowseFrame title="来源不可用" tools={<button onClick={onBack}>返回</button>}><p>请启用该分区的数据源。</p></BrowseFrame>;
+  return plugin?<SectionPage key={pluginId+sectionId+plugin.revision} plugin={plugin} sectionId={sectionId} title={title} open={open} onBack={onBack}/>:<BrowseFrame title="来源不可用" onBack={onBack}><p>请启用该分区的数据源。</p></BrowseFrame>;
 }
 function MediaPage({pluginId,mediaId,onBack,manage,active,start,onSwitch}: {pluginId:string;mediaId:string;onBack:()=>void;manage:()=>void;active:boolean;start?:SourceStart;onSwitch:(pluginId:string,mediaId:string,start?:SourceStart)=>void}) {
   const host=useHost(),plugin=host.sources.find(p=>p.meta.id===pluginId);
-  return plugin?<PluginMediaDetail key={pluginId+mediaId+plugin.revision} plugin={plugin} mediaId={mediaId} onBack={onBack} manage={manage} active={active} start={start} onSwitch={onSwitch}/>:<BrowseFrame title="来源不可用" tools={<button onClick={onBack}>返回</button>}><p>请重新导入或启用该作品的数据源。</p><button onClick={manage}>管理插件</button></BrowseFrame>;
+  return plugin?<PluginMediaDetail key={pluginId+mediaId+plugin.revision} plugin={plugin} mediaId={mediaId} onBack={onBack} manage={manage} active={active} start={start} onSwitch={onSwitch}/>:<BrowseFrame title="来源不可用" onBack={onBack} tools={<button onClick={manage}>管理插件</button>}><p>请重新导入或启用该作品的数据源。</p></BrowseFrame>;
 }
 
 function TabBar() {

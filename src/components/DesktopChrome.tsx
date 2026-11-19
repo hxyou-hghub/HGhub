@@ -122,7 +122,6 @@ export function DesktopRail({ collapsed }: { collapsed: boolean }) {
               <small>收藏与观看进度</small>
             </span>
           </button>
-          <span className="win-sidebar-version">HGhub for {platform === "macos" ? "macOS" : platform === "linux" ? "Linux" : "Windows"} {APP_VERSION}</span>
         </div>
       </div>
     </nav>

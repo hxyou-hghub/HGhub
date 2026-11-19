@@ -27,8 +27,9 @@ docs/                   技术说明与维护记录
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm dev             # 前端开发
-pnpm app:dev         # 桌面应用开发
+pnpm dev             # 桌面与 Web 端开发（一键启动）
+pnpm dev:web         # 仅纯 Web 前端开发
+pnpm app:dev         # 桌面应用开发（同 pnpm dev）
 pnpm build           # 类型检查与前端构建
 pnpm app:build       # 桌面应用构建与打包
 ```

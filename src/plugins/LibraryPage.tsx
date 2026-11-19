@@ -6,7 +6,7 @@ import { usePluginRequests } from "./usePluginRequests";
 import { useAssetUrls } from "./MediaCards";
 import type { UserProfile } from "./protocol";
 import CloudLibrary from "./CloudLibrary";
-import { ICpu, IChevR, ISettings, IStar, IHist, IUser } from "../icons";
+import { ISettings, IStar, IHist, IUser } from "../icons";
 
 export default function LibraryPage({ open, manage, settings }: { open: OpenMedia; manage: (id?: string) => void; settings: () => void }) {
   const host = useHost(), request = usePluginRequests(), [kind, setKind] = useState<"favorite" | "cloud" | "history">("favorite");
@@ -36,7 +36,6 @@ export default function LibraryPage({ open, manage, settings }: { open: OpenMedi
   };
   const accounts = host.sources.filter(p => p.methods.includes("auth.getProfile") || p.methods.includes("library.listMedia"));
   return <div className="hpp-page hpp-library-page"><header className="shrink-0 px-4 pb-2 flex items-center" style={{paddingTop:"calc(var(--sat,0px) + 14px)"}}><h1 className="text-[24px] font-bold text-on leading-none">我的片库</h1><button aria-label="设置" onClick={settings} className="ml-auto w-9 h-9 rounded-full bg-s3 flex items-center justify-center"><ISettings size={17}/></button></header><div className="hpp-scroll"><div className="hpp-content">
-    <button className="hpp-library-plugins" onClick={() => manage()}><span className="hpp-plugin-icon"><ICpu size={24}/></span><span><strong>插件中心</strong><small>管理片源、导入插件与账号登录</small></span><IChevR size={18}/></button>
     <nav className="hpp-library-tabs" aria-label="片库分栏">{([["favorite","收藏",IStar],["cloud","来自片源",IUser],["history","历史",IHist]] as const).map(([id,label,Icon])=><button key={id} aria-pressed={kind===id} onClick={()=>setKind(id)}><Icon size={18}/>{label}</button>)}</nav>
     <Notice error={error || host.error}/>{notice && <p role="status">{notice}</p>}
     {kind === "cloud" ? <><p className="hpp-library-caption">登录各片源，查看它们的收藏与观看记录。</p>{accounts.map(p=><Account key={p.meta.id+p.revision} plugin={p} open={open} manage={()=>manage(p.meta.id)}/>)}{!accounts.length&&<div className="hpp-empty"><IUser size={36}/><h2>还没有可用的片源账号</h2><p>添加支持账号或云端片库的数据源后，即可在这里查看。</p><button onClick={()=>manage()}>前往插件中心</button></div>}</> : <>

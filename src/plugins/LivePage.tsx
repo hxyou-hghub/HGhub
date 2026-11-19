@@ -23,7 +23,7 @@ export default function LivePage({ plugin, onBack, active }: { plugin: Installed
     finally { if (n === epoch.current) setBusy(false); }
   };
   useEffect(() => { setPage(null); void load(); return () => { epoch.current++; }; }, [group]);
-  return <BrowseFrame title={`${plugin.meta.name} · 直播`} tools={<button onClick={onBack}>返回</button>}><Notice error={error}/>
+  return <BrowseFrame title={`${plugin.meta.name} · 直播`} onBack={onBack}><Notice error={error}/>
     {channel && <><h2>{channel.name}</h2><ContentPlayer key={channel.id} plugin={plugin} action="live.prepare" contentId={channel.id} active={active}/>{plugin.methods.includes("live.getProgrammes") && <Programmes key={channel.id} plugin={plugin} channelId={channel.id}/>}</>}
     <div className="hpp-source-tabs"><button aria-pressed={!group} onClick={() => setGroup("")}>全部频道</button>{groups.map(g => <button key={g.id} aria-pressed={group === g.id} onClick={() => setGroup(g.id)}>{g.label}</button>)}</div>
     <div className="hpp-channel-grid">{page?.items.map(c => <ChannelCard key={c.id} logo={c.logo ? logos[logoIndex++] : undefined} channel={c} selected={c.id === channel?.id} select={() => setChannel(c)}/>)}</div>

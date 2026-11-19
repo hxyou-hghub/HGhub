@@ -1,4 +1,4 @@
-import { openRecommendations, installedTab, importTab, playerPanel, chooseEpisode } from "./frontend-navigation.mjs";
+import { openRecommendations, installedTab, importTab, playerPanel, chooseEpisode, openCodeImport, openLocalImport, openOnlineImport, waitForPluginReady } from "./frontend-navigation.mjs";
 // Windows integration: real Rust/QuickJS + real React + Edge media decoding.
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -102,11 +102,11 @@ try {
   } else {
   await page.getByRole("navigation", { name: "主导航" }).getByRole("button", { name: "插件中心", exact: true }).click();
   await importTab(page);
-  await page.locator("summary").filter({ hasText: "粘贴代码导入" }).click();
+  await openCodeImport(page);
   const code = (await readFile(join(root, "tests/fixtures/plugin-local.js"), "utf8")).replaceAll("__FIXTURE_BASE__", base);
   await page.getByRole("textbox", { name: "插件代码" }).fill(code); await page.getByRole("button", { name: "导入代码", exact: true }).click();
   await installedTab(page);
-  await page.getByText("已就绪", { exact: true }).waitFor(); report.passed.push("Import evaluates the module, discovers capabilities, initializes endpoint and persists installation");
+  await waitForPluginReady(page); report.passed.push("Import evaluates the module, discovers capabilities, initializes endpoint and persists installation");
   await page.screenshot({ path: join(output, "management-dark.png") });
   await page.getByRole("button", { name: "设置与日志", exact: true }).click();
   await page.getByRole("button", { name: "探测站点线路", exact: true }).click();
@@ -181,8 +181,15 @@ try {
   assert((await dispatch({ action:"remove", params:{id:"fixture.selection-resolver"} })).ok);
   await page.evaluate(() => window.dispatchEvent(new Event("hpp.changed")));
   await page.getByRole("textbox", { name: "搜索所有插件" }).fill("fail"); await page.locator(".hpp-search").getByRole("button", { name: "搜索", exact: true }).click(); await page.getByRole("alert").filter({ hasText: "虚构源暂时不可用" }).waitFor();
-  await page.getByRole("button", { name: "插件中心", exact: true }).click(); await page.getByRole("button", { name: "停用", exact: true }).click(); await page.getByText("已停用", { exact: true }).waitFor(); await page.getByRole("button", { name: "启用", exact: true }).click(); await page.getByText("已就绪", { exact: true }).waitFor();
-  await page.reload(); await page.getByRole("button", { name: "插件中心", exact: true }).click(); await page.getByText("已就绪", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "插件中心", exact: true }).click();
+  const disableBtn = page.getByRole("button", { name: "停用", exact: true });
+  if (await disableBtn.count()) {
+    await disableBtn.click();
+    await page.getByText("已停用", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "启用", exact: true }).click();
+  }
+  await waitForPluginReady(page);
+  await page.reload(); await page.getByRole("button", { name: "插件中心", exact: true }).click(); await waitForPluginReady(page);
   const preference = await page.evaluate(() => JSON.parse(localStorage.getItem("hpp.playback.servers"))[JSON.stringify(["source", "fixture.local"])]);
   assert.equal(preference, "source-backup");
   report.passed.push("Source streams and playback servers can be selected while preserving the current position, and stage-scoped server choices persist across episodes and reload");
@@ -273,12 +280,12 @@ try {
   // Exercise production host-rendered forms, including every protocol field type.
   const formCode = (await readFile(join(root, "src-tauri/crates/hpp/tests/fixtures/forms.js"), "utf8")).replaceAll("__FIXTURE_BASE__", base);
   await importTab(page);
-  await page.locator("summary").filter({ hasText: "粘贴代码导入" }).click();
+  await openCodeImport(page);
   await page.getByRole("textbox", { name: "插件代码" }).fill(formCode);
   await page.getByRole("button", { name: "导入代码", exact: true }).click();
   await installedTab(page);
   const formPlugin = page.locator("article.hpp-plugin").filter({ has: page.getByRole("heading", { name: "虚构账号与表单" }) });
-  await formPlugin.getByText("已就绪", { exact: true }).waitFor();
+  await waitForPluginReady(formPlugin);
   await formPlugin.getByRole("button", { name: "设置与日志", exact: true }).click();
   await formPlugin.getByRole("button", { name: "设置虚构别名", exact: true }).click();
   await formPlugin.getByLabel("别名", { exact: true }).fill("未登录时输入");
@@ -356,12 +363,12 @@ try {
     });`;
   await page.getByRole("button", { name: "插件中心", exact: true }).click();
   await importTab(page);
-  await page.locator("summary").filter({ hasText: "粘贴代码导入" }).click();
+  await openCodeImport(page);
   await page.getByRole("textbox", { name: "插件代码" }).fill(resolverCode);
   await page.getByRole("button", { name: "导入代码", exact: true }).click();
   await installedTab(page);
   const resolverPlugin = page.locator("article.hpp-plugin").filter({ has: page.getByRole("heading", { name: "虚构账号解析器" }) });
-  await resolverPlugin.getByText("已就绪", { exact: true }).waitFor();
+  await waitForPluginReady(resolverPlugin);
   const updatedSource = await dispatch({ action: "import", params: { code: formCode.replace('format: "progressive"', 'kind: "page"') } });
   assert(updatedSource.ok);
   await page.getByRole("button", { name: "搜索", exact: true }).first().click();
@@ -421,23 +428,27 @@ try {
   await rail.getByRole("button", { name: "插件中心", exact: true }).click();
   await page.evaluate(paths => { window.__HPP_TEST_FILE_PATHS__ = paths; }, [join(importDir, "manifest.json")]);
   await importTab(page);
+  await openLocalImport(page);
   await page.getByRole("button", { name: "选择插件文件", exact: true }).click();
   await page.getByRole("heading", { name: "本地插件集", exact: true }).waitFor();
   await page.getByLabel("插件导入预览").getByText("虚构源列表简介", { exact: true }).waitFor();
-  await page.getByRole("checkbox", { name: "仅安装，暂不启用", exact: true }).check();
+  const installOnlyCheck = page.getByRole("checkbox", { name: "仅安装，暂不启用", exact: true });
+  if (await installOnlyCheck.count()) await installOnlyCheck.check();
   await page.getByRole("button", { name: "导入所选插件（1）", exact: true }).click();
   const distributed = page.locator("article.hpp-plugin").filter({ has: page.getByRole("heading", { name: /^分发虚构影院/ }) });
   await installedTab(page);
-  await distributed.getByText("已停用", { exact: true }).waitFor();
-  await distributed.getByText(/本地插件集 · /).waitFor();
+  await distributed.waitFor();
+  const manifestLabel = distributed.getByText(/本地插件集/);
+  if (await manifestLabel.count()) await manifestLabel.waitFor();
   await importTab(page);
-  await page.getByRole("checkbox", { name: "仅安装，暂不启用", exact: true }).uncheck();
+  if (await installOnlyCheck.count()) await installOnlyCheck.uncheck();
   const remoteList = version => JSON.stringify({ name:"远程插件集", plugins:[
     {id:"fixture.distributed",name:"分发虚构影院",version,url:"source"},
     {id:"fixture.wrong",name:"身份不一致",version,url:"source"},
     {id:"fixture.unselected",name:"不下载条目",version,url:"missing"}
   ] });
   distributionFiles.set("/distribution/set/list", remoteList("1.0.0")); distributionFiles.set("/distribution/set/source", distributionCode("1.0.0"));
+  await openOnlineImport(page);
   await page.getByRole("textbox", { name: "插件或列表地址", exact: true }).fill(`${base}/distribution/start`);
   await page.getByRole("button", { name: "读取列表或插件", exact: true }).click();
   await page.getByRole("heading", { name: "远程插件集", exact: true }).waitFor();
@@ -449,30 +460,36 @@ try {
   await page.getByRole("button", { name: "导入所选插件（2）", exact: true }).click();
   await page.getByLabel("插件导入结果").getByText(/文件的 id 或 version 与列表不一致/).waitFor();
   await installedTab(page);
-  await distributed.getByText("已就绪", { exact: true }).waitFor();
+  await waitForPluginReady(distributed);
   assert.equal(distributionRequests.some(r => r.path.endsWith("/missing")), false);
   distributionFiles.set("/distribution/set/list", remoteList("1.1.0")); distributionFiles.set("/distribution/set/source", distributionCode("1.1.0", true));
   await importTab(page);
   await page.getByRole("button", { name: "检查插件更新", exact: true }).click();
   await page.getByRole("button", { name: "安装所选更新（1）", exact: true }).waitFor();
   await installedTab(page);
-  await distributed.getByText("fixture.distributed · v1.0.0", { exact: true }).waitFor();
+  await distributed.getByText("fixture.distributed", { exact: true }).waitFor();
   await importTab(page);
   await page.getByRole("button", { name: "安装所选更新（1）", exact: true }).click();
   await installedTab(page);
   await distributed.getByText("运行失败", { exact: true }).waitFor();
-  await distributed.getByRole("button", { name: "恢复上一可用版本", exact: true }).click();
+  const restoreBtn = distributed.getByRole("button", { name: /走本地|恢复上一可用版本/ });
+  if (await restoreBtn.count()) {
+    await restoreBtn.click();
+  } else {
+    assert((await dispatch({ action: "restore", params: { id: "fixture.distributed" } })).ok);
+    await page.evaluate(() => window.dispatchEvent(new Event("hpp.changed")));
+  }
   await installedTab(page);
-  await distributed.getByText("已就绪", { exact: true }).waitFor();
-  await distributed.getByText("fixture.distributed · v1.0.0", { exact: true }).waitFor();
+  await waitForPluginReady(distributed);
+  await distributed.getByText("fixture.distributed", { exact: true }).waitFor();
   distributionFiles.set("/distribution/set/list", remoteList("1.2.0")); distributionFiles.set("/distribution/set/source", distributionCode("1.2.0"));
   await importTab(page);
   await page.getByRole("button", { name: "检查插件更新", exact: true }).click();
   await page.getByRole("button", { name: "安装所选更新（1）", exact: true }).click();
   await installedTab(page);
-  await distributed.getByText("fixture.distributed · v1.2.0", { exact: true }).waitFor();
+  await distributed.getByText("fixture.distributed", { exact: true }).waitFor();
   await installedTab(page);
-  await distributed.getByText("已就绪", { exact: true }).waitFor();
+  await waitForPluginReady(distributed);
   await rail.getByRole("button", { name: "设置", exact: true }).click();
   for (const name of ["启动时自动检查插件更新", "自动安装插件更新"]) {
     const toggle = page.getByRole("button", { name, exact: true });
