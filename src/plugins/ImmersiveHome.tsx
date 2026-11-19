@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { IChevronDown, IChevronUp, IClose, IGrid, IRefresh, Logo } from "../icons";
+import { IChevronDown, IChevronUp, IRefresh, Logo } from "../icons";
 import { useHost } from "./HostContext";
 import { pluginError, type InstalledPlugin } from "./client";
 import type { Category, MediaItem, Page, Section } from "./protocol";
@@ -102,16 +102,4 @@ export default function ImmersiveHome({ open, manage, settings, active = true }:
       : <div className="absolute inset-0 bg-black flex flex-col items-center justify-center gap-4 text-white/60 text-xs"><Logo size={42}/><p>{busy?"正在加载…":available.length?"暂无可播放内容":"添加片源后开始观看"}</p>{!busy&&<button className="rounded-full px-5 py-2 bg-white/10" onClick={available.length?settings:manage}>{available.length?"选择片源":"添加片源"}</button>}</div>}
     {!!Object.keys(errors).length&&<details className="hpp-home-errors"><summary>{Object.keys(errors).length} 个片源暂不可用</summary>{Object.values(errors).map(e=><Notice key={e} error={e}/>)}<button onClick={()=>void load()}>重试片源</button></details>}
   </div>;
-}
-
-export function SourcePicker({ plugins, close, manage }: { plugins: InstalledPlugin[]; close: () => void; manage: () => void }) {
-  const { prefs, setPrefs } = useHost(), ref = useRef<HTMLDialogElement>(null);
-  const [mode, setMode] = useState(prefs.homeMode), [ids, setIds] = useState(prefs.homeIds);
-  useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);
-  return <dialog ref={ref} className="hpp-source-picker" aria-labelledby="source-picker-title" onCancel={close} onClick={e => { if (e.target === e.currentTarget) close(); }}>
-    <div className="hpp-picker-heading"><div><h2 id="source-picker-title">选择首页片源</h2><p>从选中的片源随机播放，选择会自动记住</p></div><button aria-label="关闭片源选择" onClick={close}><IClose size={20}/></button></div>
-    <div className="hpp-segmented" role="group" aria-label="片源选择模式">{([["single", "单选"], ["multiple", "多选"], ["all", "全选"]] as const).map(([id, title]) => <button key={id} aria-pressed={mode === id} onClick={() => { setMode(id); if (id === "single") setIds(ids.filter(v => plugins.some(p => p.meta.id === v)).slice(0, 1)); }}>{title}</button>)}</div>
-    <div className="hpp-picker-list">{plugins.map(p => <label key={p.meta.id}><span className="hpp-plugin-icon"><IGrid size={20}/></span><span><strong>{p.meta.name}</strong><small>{p.meta.description || "已启用的数据源"}</small></span><input name="home-source" type={mode === "single" ? "radio" : "checkbox"} disabled={mode === "all"} checked={mode === "all" || ids.includes(p.meta.id)} onChange={e => setIds(mode === "single" ? [p.meta.id] : e.target.checked ? [...ids, p.meta.id] : ids.filter(id => id !== p.meta.id))}/></label>)}</div>
-    {!plugins.length && <p className="hpp-muted">还没有可播放的片源。</p>}<footer><button onClick={() => { close(); manage(); }}>管理插件</button><button className="primary" disabled={mode !== "all" && !ids.some(id => plugins.some(p => p.meta.id === id))} onClick={() => { setPrefs({ homeMode: mode, homeIds: ids }); close(); }}>保存选择</button></footer>
-  </dialog>;
 }

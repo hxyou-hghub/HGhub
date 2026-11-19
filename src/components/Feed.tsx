@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { setMobileOrientation } from "../orientation";
 import { isMobile } from "../environment";
@@ -12,7 +13,9 @@ import PlaybackLock from "./PlaybackLock";
 import { registerBackHandler } from "../back";
 import { useVerticalSwipe } from './useVerticalSwipe';
 import type { PreparedMedia } from "../plugins/client";
-import { IMore, IHeart, IHeartF, IPip, IBack, IBoltF, IChevR, IChevronDown, IChevronUp, IClose, ICommentF, ICompress, IExpand, IList, ILockF, IPauseF, IPlayF, ISearch, ISettings, IVol, IVolMute } from "../icons";
+import { useHost } from "../plugins/HostContext";
+import { playbackSources } from "../plugins/ImmersiveHome";
+import { IMore, IHeart, IHeartF, IPip, IBack, IBoltF, IChevR, IChevronDown, IChevronUp, IClose, ICommentF, ICompress, IExpand, IGrid, IList, ILockF, IPauseF, IPlayF, ISearch, ISettings, IVol, IVolMute } from "../icons";
 
 export type PlayerPanel = "detail" | "episodes" | "comments" | "playback";
 type SurfacePanel = PlayerPanel | "more";
@@ -791,7 +794,7 @@ export default function Feed({media, position, active=true, preparing=false, err
               )}
 
               {preview && !clean && <>
-                <header className="hg-preview-heading"><div><span className="hg-preview-selected">为你推荐</span><span className="hg-preview-source">{author}</span></div><button aria-label="搜索" onClick={()=>store.setTab("search")}><ISearch size={21}/></button></header>
+                <header className="hg-preview-heading"><div><span className="hg-preview-selected">为你推荐</span><HomeSourceSelect/></div><button aria-label="搜索" onClick={()=>store.setTab("search")}><ISearch size={21}/></button></header>
                 <div className="hg-preview-actions">
                   <button aria-label={muted?"取消静音":"静音"} onClick={()=>setMuted(v=>!v)}><span>{muted?<IVolMute size={24}/>:<IVol size={24}/>}</span><small>{muted?"静音":"声音"}</small></button>
                   {onFavorite&&<button onClick={onFavorite} aria-label={favorite?"取消本地收藏":"本地收藏"} aria-pressed={favorite}><span>{favorite?<IHeartF size={25}/>:<IHeart size={25}/>}</span><small>{favorite?"已收藏":"收藏"}</small></button>}
@@ -847,4 +850,46 @@ export default function Feed({media, position, active=true, preparing=false, err
     </div>
     </div>
   );
+}
+
+function HomeSourceSelect() {
+  const host = useHost(), sources = playbackSources(host.sources), buttonRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false), [pos, setPos] = useState({ top: 0, left: 0 });
+  const mode = host.prefs.homeMode;
+  const selected = sources.filter(p => host.prefs.homeIds.includes(p.meta.id));
+  const label = mode === "all" ? `全部 ${sources.length} 个片源` : selected.length ? selected.map(p => p.meta.name).join("、") : "选择片源";
+  const openList = () => {
+    const box = buttonRef.current?.getBoundingClientRect();
+    if (box) {
+      const menuW = 200, margin = 8;
+      const left = Math.min(box.left, window.innerWidth - menuW - margin);
+      setPos({ top: box.bottom + 6, left: Math.max(margin, left) });
+    }
+    setOpen(true);
+  };
+  const pick = (id: string) => {
+    if (mode === "single") {
+      if (host.prefs.homeIds[0] === id) return;
+      void host.setPrefs({ homeMode: "single", homeIds: [id] });
+      setOpen(false);
+      return;
+    }
+    const ids = selected.some(p => p.meta.id === id) ? host.prefs.homeIds.filter(v => v !== id) : [...host.prefs.homeIds.filter(v => sources.some(p => p.meta.id === v)), id];
+    void host.setPrefs({ homeMode: "multiple", homeIds: ids });
+  };
+  const setMode = (next: "single" | "multiple" | "all") => {
+    if (next === "all") { void host.setPrefs({ homeMode: "all" }); return; }
+    const homeIds = next === "single" ? host.prefs.homeIds.slice(0, 1) : host.prefs.homeIds;
+    void host.setPrefs({ homeMode: next, homeIds });
+  };
+  useEffect(() => { if (!open) return; const close = () => setOpen(false); window.addEventListener("click", close); return () => window.removeEventListener("click", close); }, [open]);
+  return <>
+    <button ref={buttonRef} type="button" className="hg-preview-source" aria-haspopup="listbox" aria-expanded={open} onClick={e => { e.stopPropagation(); open ? setOpen(false) : openList(); }}>{label}<IChevronDown size={15}/></button>
+    {open && createPortal(<div className="hg-source-menu" role="listbox" aria-multiselectable={mode === "multiple"} style={{ top: pos.top, left: pos.left }} onClick={e => e.stopPropagation()}>
+      <div className="hg-source-modes" role="group" aria-label="片源选择模式">{([["single", "单选"], ["multiple", "多选"], ["all", "全部"]] as const).map(([id, title]) => <button key={id} type="button" aria-pressed={mode === id} onClick={() => setMode(id)}>{title}</button>)}</div>
+      {mode !== "all" && sources.map(p => <button key={p.meta.id} type="button" role="option" aria-selected={selected.some(s => s.meta.id === p.meta.id)} onClick={() => pick(p.meta.id)}><span className="hg-source-check">{selected.some(s => s.meta.id === p.meta.id) ? "✓" : ""}</span>{p.meta.name}</button>)}
+      {mode === "all" && <p className="hg-source-empty">随机播放全部 {sources.length} 个片源。</p>}
+      {!sources.length && <p className="hg-source-empty">还没有可播放的片源。</p>}
+    </div>, document.body)}
+  </>;
 }

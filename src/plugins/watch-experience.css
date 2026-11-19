@@ -10,8 +10,18 @@
 .hg-preview-heading>div{display:flex;align-items:center;gap:20px;min-width:0}
 .hg-preview-selected{position:relative;font-size:18px;font-weight:750;white-space:nowrap}
 .hg-preview-selected::after{content:"";position:absolute;bottom:-10px;left:calc(50% - 10px);width:20px;height:3px;background:var(--p-primary);border-radius:3px}
-.hg-preview-source{font-size:12px;color:#ffffff98;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hg-preview-source{display:inline-flex;align-items:center;gap:4px;max-width:240px;padding:5px 10px;border-radius:999px;background:#ffffff1a;font-size:12px;color:#fff;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .15s}
+.hg-preview-source:hover{background:#ffffff2e}
 .hg-preview-heading>button{width:40px;height:40px;display:grid;place-items:center}
+.hg-source-menu{position:fixed;z-index:80;min-width:180px;max-width:280px;max-height:320px;overflow:auto;padding:6px;border-radius:10px;background:#141519f2;border:1px solid #ffffff1f;box-shadow:0 18px 48px #0009;color:#fff;font-size:12.5px}
+.hg-source-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:7px;text-align:left;color:#fff}
+.hg-source-menu button:hover{background:#ffffff1c}
+.hg-source-menu button[aria-selected=true]{color:var(--p-primary)}
+.hg-source-modes{display:flex;gap:4px;padding:4px;margin-bottom:6px;border-radius:8px;background:#ffffff14}
+.hg-source-modes button{flex:1;justify-content:center;padding:6px 0;font-size:12px;border-radius:6px;color:#ffffffb0}
+.hg-source-modes button[aria-pressed=true]{background:#ffffff2e;color:#fff}
+.hg-source-check{width:14px;flex-shrink:0;text-align:center}
+.hg-source-empty{padding:10px;color:#ffffffa0;font-size:11.5px}
 .hg-preview-actions{position:absolute;right:24px;bottom:130px;z-index:20;display:flex;flex-direction:column;gap:20px;color:#fff}
 .hg-preview-actions button{display:flex;flex-direction:column;align-items:center;gap:5px}
 .hg-preview-actions button>span{display:grid;place-items:center;width:44px;height:44px;background:#11151abb;backdrop-filter:blur(12px);border-radius:50%}
