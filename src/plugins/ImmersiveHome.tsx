@@ -23,7 +23,9 @@ export const playbackSources = (sources: InstalledPlugin[]) => sources.filter(p 
 export default function ImmersiveHome({ open, manage, settings, active = true }: { open: OpenMedia; manage: () => void; settings: () => void; active?: boolean }) {
   const host = useHost(), request = usePluginRequests(), app = useStore();
   const available = playbackSources(host.sources);
-  const chosen = host.prefs.homeMode === "all" ? available : host.prefs.homeIds.flatMap(id => available.find(p => p.meta.id === id) || []).slice(0, host.prefs.homeMode === "single" ? 1 : undefined);
+  const picked = host.prefs.homeIds.flatMap(id => available.find(p => p.meta.id === id) || []).slice(0, host.prefs.homeMode === "single" ? 1 : undefined);
+  // 未显式选择片源（如首次安装）时回退到全部可用片源，避免首页落到全黑空态。
+  const chosen = host.prefs.homeMode === "all" || !picked.length ? available : picked;
   const signature = chosen.map(p => p.meta.id + p.revision).join("|");
   const [queue, setQueue] = useState<QueueItem[]>([]), [index, setIndex] = useState(0), [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({}), [round, setRound] = useState(0);
