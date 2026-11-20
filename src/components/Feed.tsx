@@ -29,6 +29,13 @@ export interface FeedPresentation {
   queueIndex?: number; total?: number;
   previousPreview?: { title: string; poster?: string }; nextPreview?: { title: string; poster?: string };
 }
+/** `Episode.label` 按协议是展示用编号文本（"12"、"SP1"、"12.5"），不含"第/集"外壳。纯数字才补"第 N 集"，完整标签或其它编号（SP、花絮）原样展示。 */
+const EPISODE_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
+export function formatEpisodeLabel(label: string): string {
+  const value = label.trim();
+  if (!EPISODE_NUMBER_PATTERN.test(value)) return value;
+  return `第 ${value} 集`;
+}
 export interface FeedProps extends FeedPresentation {
   media: PreparedMedia | null; position: number; active?: boolean; preparing?: boolean; error?: string; onRetry?: () => void;
   onPosition: (t: number, duration?: number) => void; onFailure: () => void;
@@ -222,8 +229,18 @@ export default function Feed({media, position, active=true, preparing=false, err
   useEffect(()=>{
     if(!active || controlsLocked)return;
     const key=(e:KeyboardEvent)=>{
-      if(e.defaultPrevented || document.querySelector("dialog[open]") || (e.target as HTMLElement).closest("input,textarea,select,button,[contenteditable=true]"))return;
-      if(panel){if(e.key==="Escape"){e.preventDefault();setPanel(null);}return;}
+      if(e.defaultPrevented || document.querySelector("dialog[open]"))return;
+      /* ESC 视为播放页全局退出键：进度条等 range input 聚焦时也生效，不被 input 原生行为吞掉 */
+      if(e.key==="Escape" && !preview){
+        e.preventDefault();
+        if(panel){setPanel(null);return;}
+        if(document.fullscreenElement){void document.exitFullscreen();return;}
+        if(store.clean){store.setClean(false);return;}
+        onBack?.();
+        return;
+      }
+      if((e.target as HTMLElement).closest("input,textarea,select,button,[contenteditable=true]"))return;
+      if(panel)return;
       switch(e.key.toLowerCase()){
         case "arrowdown":e.preventDefault();go(1);break;case "arrowup":e.preventDefault();go(-1);break;
         case " ":e.preventDefault();videoRef.current?.toggle();break;
@@ -231,7 +248,6 @@ export default function Feed({media, position, active=true, preparing=false, err
         case "pageup":if(!preview){e.preventDefault();onPreviousEpisode?.();}break;case "pagedown":if(!preview){e.preventDefault();onNextEpisode?.();}break;
         case "m":setMuted(v=>!v);break;case "t":break;case "f":isDesktop?toggleFull():(fs?exitFs():enterFs());break;
         case "c":if(panels.comments)setPanel("comments");break;case "e":if(preview)onOpenDetail?.();else if(panels.episodes)setPanel("episodes");break;
-        case "escape":if(preview)break;e.preventDefault();if(document.fullscreenElement){void document.exitFullscreen();break;}if(store.clean){store.setClean(false);break;}onBack?.();break;
       }
       wake();
     };window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);
@@ -516,7 +532,9 @@ export default function Feed({media, position, active=true, preparing=false, err
     if (!barScrub.current) return;
     barScrub.current = false;
     e.stopPropagation();
-    const pct = barPctAt(e.currentTarget as HTMLElement, e.clientX, e.clientY) ?? barPct;
+    const el = e.currentTarget as HTMLElement;
+    try { if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    const pct = barPctAt(el, e.clientX, e.clientY) ?? barPct;
     setBarPct(null);
     if (pct != null && duration > 0) {
       const target = Math.max(0, Math.min(duration - 0.15, pct * duration));
@@ -810,7 +828,7 @@ export default function Feed({media, position, active=true, preparing=false, err
               {!preview && !clean && !fs && !controlsLocked && (title || onBack) && <header className="hg-watch-heading"
                 onMouseDown={e=>{if(isDesktop&&e.button===0&&!(e.target as HTMLElement).closest("button,input,select,a")){e.preventDefault();const win=getCurrentWindow();void (e.detail===2?win.toggleMaximize():win.startDragging()).catch(()=>{});}}}>
                 {onBack&&<button aria-label="返回" onClick={onBack}><IBack size={22}/></button>}
-                <div className="hg-watch-title"><h1>{title}</h1><p>{episodeLabel ? `${/^第/.test(episodeLabel)?episodeLabel:`第 ${episodeLabel} 集`}${episodeCount?` / 共 ${episodeCount} 集`:""}` : author}{qualityLabel ? ` · ${qualityLabel}` : ""}</p></div>
+                <div className="hg-watch-title"><h1>{title}</h1><p>{episodeLabel ? `${formatEpisodeLabel(episodeLabel)}${episodeCount?` / 共 ${episodeCount} 集`:""}` : author}{qualityLabel ? ` · ${qualityLabel}` : ""}</p></div>
                 {!isDesktop&&<><button aria-label={muted?"取消静音":"静音"} onClick={()=>setMuted(v=>!v)}>{muted?<IVolMute size={23}/>:<IVol size={23}/>}</button>{panels.episodes&&<button aria-label="选集" onClick={()=>setPanel("episodes")}><IList size={24}/></button>}<button aria-label="更多" onClick={()=>setPanel("more")}><IMore size={24}/></button></>}
                 {isDesktop&&store.watching&&<PlaybackWindowActions/>}
               </header>}

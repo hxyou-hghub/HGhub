@@ -1,22 +1,38 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ImageRef, MediaItem } from "./protocol";
 import { pluginCommand, releaseMedia } from "./client";
 
+type Prepared = { sessionId: string; url: string };
 export function useAssetUrls(pluginId: string, assets: ImageRef[]) {
   const [urls,setUrls]=useState<string[]>([]);
+  // 已解析资源按资源 JSON 缓存：分页追加时只为新增项 prepare，命中的旧地址保持不变，
+  // 避免整页封面被清空重取（首屏已加载的图片不应因翻页而重新渲染）。
+  const cache=useRef(new Map<string,Prepared>());
+  const cachePlugin=useRef(pluginId);
   const encoded=JSON.stringify(assets);
   useEffect(()=>{
-    let disposed=false;const sessions:string[]=[];setUrls([]);
-    if(assets.length) void (async()=>{
-      const result:string[]=[];
-      for(let start=0;start<assets.length;start+=200){
-        const r=await pluginCommand<{sessionId:string;urls:string[]}>("assets.prepare",{id:pluginId,assets:assets.slice(start,start+200)});
-        if(disposed){releaseMedia(r.sessionId);return;}sessions.push(r.sessionId);result.push(...r.urls);
+    let disposed=false;
+    if(cachePlugin.current!==pluginId){cachePlugin.current=pluginId;cache.current.clear();}
+    const keys=assets.map(asset=>JSON.stringify(asset));
+    const cacheMap=cache.current,keep=new Set(keys);
+    for(const [key,entry] of cacheMap){if(!keep.has(key)){releaseMedia(entry.sessionId);cacheMap.delete(key);}}
+    const missing=[...new Set(keys.filter(key=>!cacheMap.has(key)))];
+    const publish=()=>{if(!disposed)setUrls(keys.map(key=>cacheMap.get(key)?.url??""));};
+    if(!missing.length){publish();return ()=>{disposed=true;};}
+    void (async()=>{
+      for(let start=0;start<missing.length;start+=200){
+        const chunk=missing.slice(start,start+200);
+        const r=await pluginCommand<{sessionId:string;urls:string[]}>("assets.prepare",{id:pluginId,assets:chunk.map(key=>JSON.parse(key) as ImageRef)});
+        if(disposed){releaseMedia(r.sessionId);return;}
+        r.urls.forEach((url,i)=>{const key=chunk[i];if(key!==undefined)cacheMap.set(key,{sessionId:r.sessionId,url});});
       }
-      if(!disposed)setUrls(result);
-    })().catch(()=>{for(const id of sessions)releaseMedia(id);});
-    return ()=>{disposed=true;for(const id of sessions)releaseMedia(id);};
-  },[pluginId,encoded]);return urls;
+      publish();
+    })().catch(()=>{});
+    return ()=>{disposed=true;};
+  },[pluginId,encoded]);
+  // 组件卸载时释放仍缓存的所有会话。
+  useEffect(()=>()=>{for(const entry of cache.current.values())releaseMedia(entry.sessionId);cache.current.clear();},[]);
+  return urls;
 }
 export default function MediaCards({ pluginId, items, open, landscape=false }: {pluginId:string;items:MediaItem[];open:(item:MediaItem)=>void;landscape?:boolean}) {
   const assets=items.flatMap(i=>(landscape?i.backdrop||i.cover:i.cover)?[landscape?i.backdrop||i.cover!:i.cover!]:[]);
