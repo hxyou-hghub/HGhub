@@ -39,7 +39,7 @@
 .plat-android .legacy-panel-body,.plat-ios .legacy-panel-body{padding:12px 16px}
 .legacy-media-page .hpp-notice{position:relative}
 .hpp-category-page .hpp-content,.hpp-library-page .hpp-content{padding:12px 16px 28px}
-.hpp-category-page .hpp-provider-tabs{padding:0 16px;gap:20px}
+.hpp-category-page .hpp-provider-tabs{padding:2px 16px 12px;gap:8px}
 .hpp-page .hpp-header,.legacy-settings .hpp-header{min-height:0;padding:calc(var(--sat,0px) + 14px) 16px 12px}
 .hpp-page .hpp-header h1,.legacy-settings .hpp-header h1{font-size:24px;letter-spacing:0}
 @media(max-width:800px){

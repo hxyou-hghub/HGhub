@@ -45,6 +45,49 @@ export function Notice({error,retry,retryLabel="重试",className=""}:{error?:st
     </div>
   );
 }
+export function parseErrorMessage(msg: string) {
+  if (!msg) return { title: "加载失败", detail: "" };
+  const match = msg.match(/^(.+?)\s*(\(HTTP\s*\d+\)|\(代码\s*\w+\)|\[.+?\])(.*)$/i);
+  if (match) {
+    const title = match[1].trim();
+    const code = match[2].trim();
+    const rest = match[3].trim();
+    const detail = rest ? `${code} ${rest}` : `${code} · 请求受限或目标服务异常，请稍后重试`;
+    return { title, detail };
+  }
+  if (msg.includes("无法连接代理") || msg.includes("目标服务器")) {
+    return { title: "无法连接数据源", detail: msg };
+  }
+  if (msg.length <= 16) {
+    return { title: msg, detail: "请检查网络或配置后重试" };
+  }
+  return { title: "加载失败", detail: msg };
+}
+
+export function ErrorState({error,retry,retryLabel="重试",className=""}:{error?:string;retry?:()=>void;retryLabel?:string;className?:string}){
+  if(!error)return null;
+  const { title, detail } = parseErrorMessage(error);
+  return (
+    <div role="alert" className={`hpp-error-state a-rise ${className}`.trim()}>
+      <div className="hpp-error-state-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h3>{title}</h3>
+      <p>{detail || error}</p>
+      {retry && (
+        <button type="button" onClick={retry} className="hpp-empty-retry pressable">
+          <IRefresh size={13} className="shrink-0"/>
+          <span>{retryLabel}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function EmptySources({manage}:{manage:()=>void}) {return <div className="hpp-empty"><h2>从一个插件开始</h2><p>导入你选择的数据源，发现影视、短剧与更多内容。</p><button className="primary" onClick={manage}>管理插件</button></div>;}
 function Scope({kind,plugins}:{kind:"home"|"search";plugins:InstalledPlugin[]}) {
   const {prefs,setPrefs}=useHost(),mode=kind==="home"?prefs.homeMode:prefs.searchMode,ids=kind==="home"?prefs.homeIds:prefs.searchIds;
@@ -77,7 +120,7 @@ export function PluginCategory({open,manage,openContent}:{open:OpenMedia;manage:
     {current?.methods.includes("catalog.getCategories")?<CategoryBrowser key={current.meta.id+current.revision} plugin={current} open={open} entries={entries}/>:<>{entries}{!current?<EmptySources manage={manage}/>:<p className="hpp-muted">选择上方内容入口开始浏览。</p>}</>}
   </div></div></div>;
 }
-// 分区是分类树顶层节点，其 children 是二级分类；单层树把分区自身规范成唯一的「全部」分类。
+// 分区是分类树顶层节点，其 children 是二级分类；单层树补出的「全部」只用于请求分类内容，不渲染成导航项。
 function categoriesOf(section?: Category): Category[] {
   if (!section) return [];
   if (section.children?.length) return section.children;
@@ -87,35 +130,39 @@ function CategoryBrowser({plugin,open,entries}:{plugin:InstalledPlugin;open:Open
   const request=usePluginRequests(),[tree,setTree]=useState<Category[]>([]),[sectionId,setSectionId]=useState(""),[categoryId,setCategoryId]=useState(""),[error,setError]=useState(""),[busy,setBusy]=useState(true),[attempt,setAttempt]=useState(0);
   useEffect(()=>{let live=true;setBusy(true);setError("");const cached=categoryTrees.get(plugin.meta.id);const load=cached?.revision===plugin.revision?Promise.resolve(cached.tree):request<Category[]>("call",{id:plugin.meta.id,method:"catalog.getCategories",args:{}});void load.then(result=>{if(!live)return;categoryTrees.set(plugin.meta.id,{revision:plugin.revision,tree:result});setTree(result);setSectionId(result[0]?.id||"");setCategoryId(categoriesOf(result[0])[0]?.id||"");}).catch(e=>{if(live)setError(pluginError(e));}).finally(()=>{if(live)setBusy(false);});return()=>{live=false;request.cancelAll();};},[plugin.meta.id,plugin.revision,attempt,request]);
   const section=tree.find(c=>c.id===sectionId),categories=categoriesOf(section),active=categories.find(c=>c.id===categoryId)||categories[0];
+  const showCategories=!!section?.children?.length;
   const selectSection=(id:string)=>{setSectionId(id);setCategoryId(categoriesOf(tree.find(c=>c.id===id))[0]?.id||"");};
   if(busy)return <><Notice error={error}/><div className="hpp-skeleton" aria-label="正在加载分类"/></>;
-  if(error)return <Notice error={error} retry={()=>setAttempt(v=>v+1)} retryLabel="重试分类"/>;
+  if(error)return <ErrorState error={error} retry={()=>setAttempt(v=>v+1)} retryLabel="重试分类"/>;
   if(!tree.length)return <div className="hpp-empty"><IGrid size={36}/><h2>这里还没有分类</h2><p>片源暂未提供分类内容。</p></div>;
   return <>
-    <CategoryNav tree={tree} section={section} categories={categories} active={active} entries={entries} onSection={selectSection} onCategory={setCategoryId}/>
+    <CategoryNav tree={tree} section={section} categories={categories} active={active} entries={entries} showCategories={showCategories} onSection={selectSection} onCategory={setCategoryId}/>
     {active&&<CategoryResults key={section?.id+":"+active.id} plugin={plugin} category={active} open={open}/>}
   </>;
 }
-function CategoryNav({tree,section,categories,active,entries,onSection,onCategory}:{tree:Category[];section?:Category;categories:Category[];active?:Category;entries:React.ReactNode;onSection:(id:string)=>void;onCategory:(id:string)=>void}) {
+function CategoryNav({tree,section,categories,active,entries,showCategories,onSection,onCategory}:{tree:Category[];section?:Category;categories:Category[];active?:Category;entries:React.ReactNode;showCategories:boolean;onSection:(id:string)=>void;onCategory:(id:string)=>void}) {
   return <>
     <div className="hpp-section-row">
-      <nav className="hpp-section-tabs" aria-label="分区">{tree.map(s=><button key={s.id} aria-pressed={s.id===section?.id} onClick={()=>onSection(s.id)}>{s.label}</button>)}</nav>
+      <nav className="hpp-section-tabs" aria-label="分区">{tree.map(s=><button key={s.id} aria-pressed={s.id===section?.id} className={s.id===section?.id?"selected":""} onClick={()=>onSection(s.id)}>{s.label}</button>)}</nav>
       {entries}
     </div>
-    <nav className="hpp-category-tabs" aria-label="分类">{categories.map(c=><button key={c.id} aria-pressed={c.id===active?.id} onClick={()=>onCategory(c.id)}>{c.label}</button>)}</nav>
+    {showCategories&&<nav className="hpp-category-tabs" aria-label="分类">{categories.map(c=><button key={c.id} aria-pressed={c.id===active?.id} className={c.id===active?.id?"selected":""} onClick={()=>onCategory(c.id)}>{c.label}</button>)}</nav>}
   </>;
 }
 function CategoryResults({plugin:p,category,open}:{plugin:InstalledPlugin;category:Category;open:OpenMedia}) {
   const metadata=usePluginRequests(),[filters,setFilters]=useState<Filter[]>(category.filters||[]),[sorts,setSorts]=useState<FilterOption[]>(category.sorts||[]),[values,setValues]=useState<Record<string,string[]>>({}),[sort,setSort]=useState(""),[error,setError]=useState("");
   useEffect(()=>{if(!p.methods.includes("catalog.getFilters"))return;let live=true;void metadata<{filters?:Filter[];sorts?:FilterOption[]}>("call",{id:p.meta.id,method:"catalog.getFilters",args:{categoryId:category.id}}).then(r=>{if(live){setFilters(r.filters||[]);setSorts(r.sorts||[]);}}).catch(e=>{if(live)setError(pluginError(e));});return()=>{live=false;};},[category.id,p.meta.id,p.methods,metadata]);
   const list=usePagedPlugin<MediaItem>({plugin:p,method:"catalog.list",args:{categoryId:category.id,filters:values,sort:sort||undefined}});
+  const hasItems=!!list.page?.items?.length;
+  const activeError=error||list.error||list.warning;
   return <>
     <FilterControls filters={filters} values={values} change={setValues}/>
     {!!sorts.length&&<label className="hpp-sort">排序 <select aria-label="分类排序" value={sort} onChange={e=>setSort(e.target.value)}><option value="">默认</option>{sorts.map(s=><option value={s.id} key={s.id}>{s.label}</option>)}</select></label>}
-    <Notice error={error||list.error||list.warning} retry={list.error?list.retry:undefined} retryLabel="重试分类"/>
-    {list.busy&&!list.page?<div className="hpp-skeleton"/>:list.page?.items?.length?<WaterfallCards pluginId={p.meta.id} items={list.page.items} open={i=>open(p.meta.id,i.id)}/>:null}
-    {!list.busy&&!list.error&&!list.page?.items.length&&<div className="py-16 text-center text-mut a-rise"><IGrid size={32} className="mx-auto mb-3 opacity-30 text-dim"/><p className="text-sm font-medium">暂无分类内容</p><p className="text-xs text-dim mt-1.5">可尝试选择其他分类或筛选条件</p></div>}
-    {!!list.page?.items?.length&&<PageLoadMore next={list.page?.next} busy={list.busy} error={list.error} more={list.more}/>}
+    {hasItems&&<Notice error={activeError} retry={list.error?list.retry:undefined} retryLabel="重试分类"/>}
+    {list.busy&&!list.page?<div className="hpp-skeleton"/>:hasItems?<WaterfallCards pluginId={p.meta.id} items={list.page!.items} open={i=>open(p.meta.id,i.id)}/>:null}
+    {!list.busy&&!hasItems&&activeError&&<ErrorState error={activeError} retry={list.error?list.retry:undefined} retryLabel="重试分类"/>}
+    {!list.busy&&!hasItems&&!activeError&&<div className="py-16 text-center text-mut a-rise"><IGrid size={32} className="mx-auto mb-3 opacity-30 text-dim"/><p className="text-sm font-medium">暂无分类内容</p><p className="text-xs text-dim mt-1.5">可尝试选择其他分类或筛选条件</p></div>}
+    {hasItems&&<PageLoadMore next={list.page?.next} busy={list.busy} error={list.error} more={list.more}/>}
   </>;
 }
 export function PluginSearch({open,manage}:{open:OpenMedia;manage:()=>void}) {

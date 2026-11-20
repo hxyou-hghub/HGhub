@@ -95,6 +95,13 @@ export async function testPluginBrowsing({ page, dispatch, root, output, report,
   await page.evaluate(async code => { const { pluginCommand } = await import("/src/plugins/client.ts"); await pluginCommand("import", { code }); }, revised);
   await sections.getByRole("button", { name: "修订后的分类", exact: true }).waitFor();
   assert((await call(ids[0])).filter(c => c.method === "catalog.getCategories").length > metadataCalls, "Same-version replacement invalidates category metadata");
+  // A section with children shows every child; a single-level section hides the whole secondary nav.
+  const categoryNav = page.getByRole("navigation", { name: "分类", exact: true });
+  assert.equal(await categoryNav.getByRole("button").count(), 2, "Section with children shows every child category");
+  await sections.getByRole("button", { name: "分页电影", exact: true }).click();
+  await categoryNav.waitFor({ state: "detached" });
+  await page.getByRole("button", { name: /分页影院甲 · 分类默认 · 0/ }).waitFor();
+  assert.equal(await categoryNav.count(), 0, "Single-level section hides the whole secondary nav");
   await rail.getByRole("button", { name: "首页", exact: true }).click();
   for (const id of ids) assert((await dispatch({ action: "remove", params: { id } })).ok);
   await page.reload();
