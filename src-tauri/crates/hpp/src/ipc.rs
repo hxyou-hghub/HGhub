@@ -106,6 +106,7 @@ pub async fn dispatch(
                 .preview_import(
                     serde_json::from_value(p["locations"].clone())
                         .map_err(|_| PluginError::invalid("缺少 locations 数组"))?,
+                    p["syncList"].as_bool().unwrap_or(false),
                     text(p, "requestId")?
                 )
                 .await?

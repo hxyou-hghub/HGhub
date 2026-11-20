@@ -167,21 +167,22 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
     return () => window.clearTimeout(t);
   }, [toast]);
 
-  const showToast = (items: Outcome[]) => {
+  const showToast = (items: Outcome[], removed: string[] = []) => {
     const failed = items.filter(i => i.error || i.plugin?.error);
     const total = items.length;
+    const removedNote = removed.length ? `，移除 ${removed.length} 个` : "";
     if (failed.length === total) {
       setToast({ text: total === 1 ? (failed[0].error?.message || "导入失败") : `导入失败（${total} 个）`, kind: "error" });
     } else if (failed.length > 0) {
-      setToast({ text: `已导入 ${total - failed.length} 个，失败 ${failed.length} 个`, kind: "success" });
+      setToast({ text: `已导入 ${total - failed.length} 个，失败 ${failed.length} 个${removedNote}`, kind: "success" });
     } else {
       const replaced = items.filter(i => i.replaced).length;
       const added = total - replaced;
       const verb = (replaced > 0 && added > 0) ? "导入" : replaced > 0 ? "替换" : "安装";
       setToast({
         text: total === 1
-          ? `已${verb}并启用「${items[0].plugin?.meta.name || items[0].id}」`
-          : `已${verb}并启用 ${total} 个插件`,
+          ? `已${verb}并启用「${items[0].plugin?.meta.name || items[0].id}」${removedNote}`
+          : `已${verb}并启用 ${total} 个插件${removedNote}`,
         kind: "success",
       });
     }
@@ -232,7 +233,7 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
   const readLocations = async (locations: string[]) => {
     if (!locations.length) return;
     setUpdates([]);
-    replacePreview(await request<Preview>("distribution.preview", { locations }));
+    replacePreview(await request<Preview>("distribution.preview", { locations, syncList: true }));
   };
 
   const markReplaced = (items: Outcome[], preview: Preview): Outcome[] => {
@@ -243,19 +244,19 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
   const directImportLocations = async (locations: string[]) => {
     if (!locations.length) return;
     setUpdates([]);
-    const p = await request<Preview>("distribution.preview", { locations });
+    const p = await request<Preview>("distribution.preview", { locations, syncList: true });
     const validKeys = p.items.filter(i => !i.error).map(i => i.key);
     if (!validKeys.length) {
       replacePreview(p);
       return;
     }
-    const result = await request<{ items: Outcome[] }>("distribution.apply", {
+    const result = await request<{ items: Outcome[]; removed?: string[] }>("distribution.apply", {
       token: p.token,
       selected: validKeys,
       allowDowngrade: downgrade,
       installOnly,
     });
-    token.current = null; setPreview(null); setUpdates([]); showToast(markReplaced(result.items, p)); await reload();
+    token.current = null; setPreview(null); setUpdates([]); showToast(markReplaced(result.items, p), result.removed); await reload();
   };
 
   const canInspect = !busy && (
@@ -312,9 +313,9 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
 
   const apply = () => run(async () => {
     if (!preview) return;
-    const result = await request<{ items: Outcome[] }>("distribution.apply", { token: preview.token, selected, allowDowngrade: downgrade, installOnly });
+    const result = await request<{ items: Outcome[]; removed?: string[] }>("distribution.apply", { token: preview.token, selected, allowDowngrade: downgrade, installOnly });
     const items = markReplaced(result.items, preview);
-    token.current = null; setPreview(null); setUpdates([]); showToast(items); await reload();
+    token.current = null; setPreview(null); setUpdates([]); showToast(items, result.removed); await reload();
   });
 
   const checkUpdates = () => void run(async () => {

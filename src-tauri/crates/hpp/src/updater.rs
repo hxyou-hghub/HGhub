@@ -242,7 +242,7 @@ impl PluginManager {
     }
     pub async fn subscription_refresh(&self, id: &str, request_id: &str) -> Result<ImportPreview> {
         let subscription = self.updater.subscription_get(id)?;
-        self.preview_import(vec![subscription.location], request_id)
+        self.preview_import(vec![subscription.location], true, request_id)
             .await
     }
     pub(super) async fn capture_updates(&self, candidates: &[Candidate]) -> Result<()> {

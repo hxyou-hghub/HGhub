@@ -44,7 +44,7 @@ async fn opaque_document_import_preserves_origin_and_isolates_invalid_files() {
             ]}).to_string().into_bytes()),
         ]))));
     let preview = manager
-        .preview_import(vec![uri.into(), large.into(), invalid.into()], "documents")
+        .preview_import(vec![uri.into(), large.into(), invalid.into()], false, "documents")
         .await
         .unwrap();
     assert!(preview.items[0].error.is_none());
@@ -74,7 +74,7 @@ async fn opaque_document_import_preserves_origin_and_isolates_invalid_files() {
     assert_eq!(plugin.source.as_deref(), Some(uri));
     assert_eq!(plugin.status, "disabled");
     let preview = manager
-        .preview_import(vec![list.into()], "document-list")
+        .preview_import(vec![list.into()], false, "document-list")
         .await
         .unwrap();
     assert_eq!(preview.items[0].source, "https://plugins.example/demo.js");
@@ -121,7 +121,7 @@ async fn local_manifest_selection_identity_failures_install_only_and_recovery() 
         .to_string_lossy()
         .into_owned();
     let preview = manager
-        .preview_import(vec![location.clone()], "local-preview")
+        .preview_import(vec![location.clone()], false, "local-preview")
         .await
         .unwrap();
     assert_eq!(preview.items.len(), 4);
@@ -218,6 +218,7 @@ async fn local_manifest_selection_identity_failures_install_only_and_recovery() 
     let p = manager
         .preview_import(
             vec![files.path().join("one.js").to_string_lossy().into_owned()],
+            false,
             "single",
         )
         .await
@@ -291,7 +292,7 @@ async fn redirected_url_manifest_numeric_updates_stale_check_and_provenance() {
     let manager = PluginManager::with_mode(dir.path().into(), Some(false)).unwrap();
     let source = format!("{base}/download");
     let preview = manager
-        .preview_import(vec![source.clone()], "remote")
+        .preview_import(vec![source.clone()], false, "remote")
         .await
         .unwrap();
     assert_eq!(preview.name, "重定向列表");
@@ -420,7 +421,7 @@ async fn update_url_precedes_manifest_identity_mismatch_and_download_cancellatio
         .any(|(p, _)| p == "/unused-list"));
     let m = manager.clone();
     let url = format!("{base}/slow");
-    let waiting = tokio::spawn(async move { m.preview_import(vec![url], "cancel-download").await });
+    let waiting = tokio::spawn(async move { m.preview_import(vec![url], false, "cancel-download").await });
     tokio::time::sleep(Duration::from_millis(50)).await;
     manager.cancel("cancel-download").await;
     assert_eq!(waiting.await.unwrap().err().unwrap().code, "CANCELLED");
@@ -430,10 +431,64 @@ async fn update_url_precedes_manifest_identity_mismatch_and_download_cancellatio
         .files
         .insert("/html".into(), "<!doctype html><title>Error</title>".into());
     let bad = manager
-        .preview_import(vec![format!("{base}/html")], "html")
+        .preview_import(vec![format!("{base}/html")], false, "html")
         .await
         .unwrap();
     assert!(bad.items[0].error.is_some());
     assert_eq!(manager.list().await.len(), 1);
     server.abort();
+}
+
+#[tokio::test]
+async fn list_import_with_sync_removes_plugins_outside_the_list() {
+    let dir = tempfile::tempdir().unwrap();
+    let files = tempfile::tempdir().unwrap();
+    let manager = PluginManager::with_mode(dir.path().into(), Some(false)).unwrap();
+    // 预装一个不在列表内的插件。
+    let outside = SOURCE.replace("fixture.source", "fixture.outside");
+    manager
+        .import_code(outside, Some("manual".into()), true)
+        .await
+        .unwrap();
+    std::fs::write(files.path().join("one.js"), SOURCE).unwrap();
+    std::fs::write(
+        files.path().join("manifest.json"),
+        json!({"name":"权威列表","plugins":[
+            {"id":"fixture.source","name":"列表内条目","version":"1.0.0","url":"one.js"}
+        ]})
+        .to_string(),
+    )
+    .unwrap();
+    let location = files
+        .path()
+        .join("manifest.json")
+        .to_string_lossy()
+        .into_owned();
+
+    // syncList=false：不删除列表外的插件，结果集为并集。
+    let keep = manager
+        .preview_import(vec![location.clone()], false, "no-sync")
+        .await
+        .unwrap();
+    let report = manager
+        .apply_import(&keep.token, keys(&keep), false, false, "no-sync-apply")
+        .await
+        .unwrap();
+    assert!(report.removed.is_empty());
+    let ids: Vec<String> = manager.list().await.into_iter().map(|p| p.meta.id).collect();
+    assert!(ids.contains(&"fixture.outside".to_string()));
+    assert!(ids.contains(&"fixture.source".to_string()));
+
+    // syncList=true：删除列表外的插件，结果集仅剩列表内容。
+    let sync = manager
+        .preview_import(vec![location], true, "sync")
+        .await
+        .unwrap();
+    let report = manager
+        .apply_import(&sync.token, keys(&sync), false, false, "sync-apply")
+        .await
+        .unwrap();
+    assert_eq!(report.removed, vec!["fixture.outside".to_string()]);
+    let ids: Vec<String> = manager.list().await.into_iter().map(|p| p.meta.id).collect();
+    assert_eq!(ids, vec!["fixture.source".to_string()]);
 }

@@ -67,6 +67,8 @@ pub struct ImportOutcome {
 #[derive(Serialize)]
 pub struct ImportReport {
     pub items: Vec<ImportOutcome>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub removed: Vec<String>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 pub struct UpdateStatus {
@@ -93,6 +95,7 @@ struct Pending {
     created: Instant,
     items: Vec<Candidate>,
     updates_only: bool,
+    sync_list: bool,
     subscriptions: Vec<SubscriptionPreview>,
 }
 #[derive(Default)]
@@ -139,6 +142,7 @@ impl Distribution {
         description: String,
         items: Vec<Candidate>,
         updates_only: bool,
+        sync_list: bool,
         subscriptions: Vec<SubscriptionPreview>,
     ) -> ImportPreview {
         let token = uuid::Uuid::new_v4().to_string();
@@ -182,6 +186,7 @@ impl Distribution {
                 created: Instant::now(),
                 items,
                 updates_only,
+                sync_list,
                 subscriptions,
             },
         );
@@ -413,6 +418,7 @@ impl PluginManager {
     pub async fn preview_import(
         &self,
         locations: Vec<String>,
+        sync_requested: bool,
         request_id: &str,
     ) -> Result<ImportPreview> {
         if locations.is_empty() || locations.len() > 500 {
@@ -423,6 +429,7 @@ impl PluginManager {
         let mut description = String::new();
         let mut items = vec![];
         let mut subscriptions = vec![];
+        let mut has_list = false;
         let single = locations.len() == 1;
         for location in locations {
             let result: Result<_> = async {
@@ -432,13 +439,17 @@ impl PluginManager {
                 } else {
                     document.final_location.clone()
                 };
-                let subscribe = remote(&location) && manifest(&document.text)?.is_some();
+                let is_list = manifest(&document.text)?.is_some();
+                let subscribe = remote(&location) && is_list;
                 let (name, description, items) = self.candidates(&location, document).await?;
-                Ok((name, description, items, subscribe))
+                Ok((name, description, items, subscribe, is_list))
             }
             .await;
             match result {
-                Ok((n, d, mut candidates, subscribe)) => {
+                Ok((n, d, mut candidates, subscribe, is_list)) => {
+                    if is_list {
+                        has_list = true;
+                    }
                     if subscribe {
                         subscriptions.push(SubscriptionPreview {
                             location: location.clone(),
@@ -494,9 +505,14 @@ impl PluginManager {
         if op.cancel.is_cancelled() {
             return Err(PluginError::cancelled());
         }
-        Ok(self
-            .distribution
-            .stage(name, description, items, false, subscriptions))
+        Ok(self.distribution.stage(
+            name,
+            description,
+            items,
+            false,
+            sync_requested && has_list,
+            subscriptions,
+        ))
     }
     pub fn subscription_save(
         &self,
@@ -611,7 +627,27 @@ impl PluginManager {
             });
         }
         self.discard_import(token);
-        Ok(ImportReport { items })
+        let mut removed = vec![];
+        if pending.sync_list && !op.cancel.is_cancelled() {
+            let list_ids: std::collections::HashSet<String> = pending
+                .items
+                .iter()
+                .map(|c| c.info.id.clone())
+                .filter(|id| !id.is_empty())
+                .collect();
+            let installed: Vec<String> = self.plugins.read().await.keys().cloned().collect();
+            for id in installed {
+                if op.cancel.is_cancelled() {
+                    return Err(PluginError::cancelled());
+                }
+                if list_ids.contains(&id) {
+                    continue;
+                }
+                self.remove(&id).await?;
+                removed.push(id);
+            }
+        }
+        Ok(ImportReport { items, removed })
     }
     fn update_origin(entry: &IndexEntry) -> Option<PluginOrigin> {
         if let Some(url) = &entry.meta.update_url {
@@ -736,6 +772,7 @@ impl PluginManager {
                 "选择要安装的更新。替换时会停止该插件的播放。".into(),
                 items,
                 true,
+                false,
                 vec![],
             ),
             statuses,
