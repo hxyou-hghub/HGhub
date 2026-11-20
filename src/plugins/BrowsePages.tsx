@@ -107,7 +107,7 @@ function HomeSource({plugin:p,open,openSection,refreshToken}:{plugin:InstalledPl
   </section>;
 }
 function HomeSection({plugin:p,section:s,open,openSection}:{plugin:InstalledPlugin;section:Section;open:OpenMedia;openSection:OpenSection}) {
-  return <section className={`hpp-section hpp-layout-${s.layout}`}><div className="hpp-section-title"><h2>{s.title||"推荐"}<small>{p.meta.name}</small></h2>{s.more&&p.methods.includes("home.listSection")&&<button onClick={()=>openSection(p.meta.id,s.id,s.title)}>查看更多</button>}</div><MediaCards pluginId={p.meta.id} items={s.items} landscape={s.layout==="banner"||s.imageAspect==="landscape"} open={i=>open(p.meta.id,i.id)}/></section>;
+  return <section className={`hpp-section hpp-layout-${s.layout}`}><div className="hpp-section-title"><h2>{s.title||"推荐"}<small>{p.meta.name}</small></h2>{s.more&&p.methods.includes("home.listSection")&&<button onClick={()=>openSection(p.meta.id,s.id,s.title)}>查看更多</button>}</div><MediaCards pluginId={p.meta.id} items={s.items} layout={s.layout} landscape={s.layout==="banner"||s.imageAspect==="landscape"} open={i=>open(p.meta.id,i.id)}/></section>;
 }
 export function FilterControls({filters,values,change}:{filters:Filter[];values:Record<string,string[]>;change:(v:Record<string,string[]>)=>void}) {
   return <div className="hpp-filters browse-filters">{filters.map(f=><fieldset key={f.id}><legend>{f.label}</legend>{f.options.map(o=><label key={o.id}><input type={f.multiple?"checkbox":"radio"} name={`filter-${f.id}`} checked={(values[f.id]||[]).includes(o.id)} onChange={e=>change({...values,[f.id]:f.multiple?e.target.checked?[...(values[f.id]||[]),o.id]:(values[f.id]||[]).filter(id=>id!==o.id):[o.id]})}/>{o.label}</label>)}<button type="button" aria-pressed={!values[f.id]?.length} onClick={()=>change({...values,[f.id]:[]})}>不限</button></fieldset>)}</div>;
@@ -203,8 +203,10 @@ export function PluginSearch({open,manage}:{open:OpenMedia;manage:()=>void}) {
   const visibleGroups=tab==="all"?groups:hits.filter(h=>h.pluginId===tab).map(h=>[h]);
   const activeSources=tab==="all"?chosen:chosen.filter(p=>p.meta.id===tab);
   const loading=activeSources.some(p=>busy[p.meta.id]);
+  // 「全部」聚合翻页：任一在显示的来源还有下一页即可继续；逐个触发各自仍有 next 且当前空闲的来源。
+  const moreableIds=activeSources.filter(p=>pages[p.meta.id]?.next&&!busy[p.meta.id]).map(p=>p.meta.id);
   const clear=()=>{request.cancelAll();suggestRequest.cancelAll();epoch.current++;setQuery("");setSubmitted("");setPages({});setErrors({});setWarnings({});setBusy({});setChoice(null);setSuggest([]);inputRef.current?.focus();};
-  const openGroup=(group:SearchHit[])=>group.length>1?setChoice(group):open(group[0].pluginId,group[0].item.id);
+  const openGroup=(group:SearchHit[])=>{const sources=new Set(group.map(h=>h.pluginId));if(sources.size>1){setChoice(group);return;}const hit=group[0];open(hit.pluginId,hit.item.id,true);};
   return <div className="legacy-search-page absolute inset-0 bg-bg flex flex-col">
     <div className="shrink-0 px-4 pb-3 flex items-center gap-2.5" style={{paddingTop:"calc(var(--sat, 0px) + 12px)"}}>
       <form className="hpp-search legacy-search-form flex-1 flex items-center gap-2 h-11 rounded-(--r-ctl) bg-s3 px-3.5 focus-within:bg-s4 transition-colors" onSubmit={e=>{e.preventDefault();search();inputRef.current?.blur();}}>
@@ -227,10 +229,14 @@ export function PluginSearch({open,manage}:{open:OpenMedia;manage:()=>void}) {
       </>:<>
         {chosen.length>1&&<nav className="legacy-search-tabs flex gap-2 overflow-x-auto pb-2" aria-label="搜索结果来源"><button aria-pressed={tab==="all"} className={tab==="all"?"selected":""} onClick={()=>{setTab("all");setChoice(null);}}>全部</button>{chosen.map(p=><button key={p.meta.id} aria-pressed={tab===p.meta.id} className={tab===p.meta.id?"selected":""} onClick={()=>{setTab(p.meta.id);setChoice(null);}}>{p.meta.name}{busy[p.meta.id]?" · 加载中":` · ${pages[p.meta.id]?.items.length||0}`}</button>)}</nav>}
         <div className="text-[11.5px] text-mut mt-1 mb-2.5" aria-live="polite">「{submitted}」共 <span className="text-primary font-bold">{visibleGroups.length}</span> 条结果{loading?" · 搜索中…":""}</div>
-        {choice?<div className="hpp-source-choice legacy-search-options"><div className="flex items-center justify-between mb-3"><h2 className="text-sm font-bold">选择内容来源</h2><button onClick={()=>setChoice(null)} className="text-primary text-xs">返回搜索</button></div>{choice.map(h=><button className="block w-full text-left p-3 mb-2 bg-s3 rounded-(--r-ctl) text-xs" key={h.pluginId+h.item.id} onClick={()=>open(h.pluginId,h.item.id)}>{sources.find(p=>p.meta.id===h.pluginId)?.meta.name} · {h.item.title}</button>)}</div>:
+        {choice?<div className="hpp-source-choice legacy-search-options"><div className="flex items-center justify-between mb-3"><h2 className="text-sm font-bold">选择内容来源</h2><button onClick={()=>setChoice(null)} className="text-primary text-xs">返回搜索</button></div>{choice.map(h=><button className="block w-full text-left p-3 mb-2 bg-s3 rounded-(--r-ctl) text-xs" key={h.pluginId+h.item.id} onClick={()=>open(h.pluginId,h.item.id,true)}>{sources.find(p=>p.meta.id===h.pluginId)?.meta.name} · {h.item.title}</button>)}</div>:
           <SearchPosters groups={visibleGroups} names={Object.fromEntries(sources.map(p=>[p.meta.id,p.meta.name]))} open={openGroup}/>}
         {!visibleGroups.length&&(loading?<div className="flex justify-center py-12"><div className="w-8 h-8 spinner" aria-label="正在搜索"/></div>:<div className="py-12 text-center text-mut"><ISearch size={26} className="mx-auto mb-3"/><p className="text-sm">没有找到相关内容</p><p className="text-xs text-dim mt-2">换个关键词或片源试试</p></div>)}
-        {activeSources.map(p=><section key={p.meta.id}><Notice error={errors[p.meta.id]||warnings[p.meta.id]||""} retry={errors[p.meta.id]?()=>void load(p,submitted,epoch.current,failedCursors.current.get(p.meta.id)):undefined} retryLabel={tab==="all"?`重试 ${p.meta.name}`:"重试搜索"}/>{pages[p.meta.id]?.next&&<PageLoadMore next={pages[p.meta.id].next} busy={!!busy[p.meta.id]} error={errors[p.meta.id]||""} more={()=>void load(p,submitted,epoch.current,pages[p.meta.id].next||undefined)} label={`加载更多 · ${p.meta.name}`} skeleton={{columns:6,rows:2}}/>}</section>)}
+        {/* 错误提示按来源就地展示；翻页在下方用单个聚合入口，避免「全部」下多个来源各堆一份骨架导致整页跳动。 */}
+        {activeSources.map(p=><Notice key={`notice-${p.meta.id}`} error={errors[p.meta.id]||warnings[p.meta.id]||""} retry={errors[p.meta.id]?()=>void load(p,submitted,epoch.current,failedCursors.current.get(p.meta.id)):undefined} retryLabel={tab==="all"?`重试 ${p.meta.name}`:"重试搜索"}/>)}
+        {choice||!visibleGroups.length?null:tab==="all"
+          ?<PageLoadMore next={moreableIds.length?"more":null} busy={loading&&moreableIds.length>0} error="" more={()=>moreableIds.forEach(id=>{const p=chosen.find(x=>x.meta.id===id);if(p)void load(p,submitted,epoch.current,pages[id]?.next||undefined);})} label="加载更多" skeleton={{columns:6,rows:2}}/>
+          :activeSources.map(p=><PageLoadMore key={`more-${p.meta.id}`} next={pages[p.meta.id]?.next} busy={!!busy[p.meta.id]} error={errors[p.meta.id]||""} more={()=>void load(p,submitted,epoch.current,pages[p.meta.id]?.next||undefined)} label={`加载更多 · ${p.meta.name}`} skeleton={{columns:6,rows:2}}/>)}
       </>}
     </div>
   </div>;

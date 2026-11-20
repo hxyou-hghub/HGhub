@@ -34,7 +34,10 @@ export function useAssetUrls(pluginId: string, assets: ImageRef[]) {
   useEffect(()=>()=>{for(const entry of cache.current.values())releaseMedia(entry.sessionId);cache.current.clear();},[]);
   return urls;
 }
-export default function MediaCards({ pluginId, items, open, landscape=false }: {pluginId:string;items:MediaItem[];open:(item:MediaItem)=>void;landscape?:boolean}) {
+export default function MediaCards({ pluginId, items, open, landscape=false, layout="grid" }: {pluginId:string;items:MediaItem[];open:(item:MediaItem)=>void;landscape?:boolean;layout?:string}) {
+  // Row sections (rankings) share the uniform card; grid sections flow at each cover's own aspect ratio.
+  if(layout==="row")return <WaterfallCards pluginId={pluginId} items={items} open={open}/>;
+  if(layout==="grid")return <FlowCards pluginId={pluginId} items={items} open={open}/>;
   const assets=items.flatMap(i=>(landscape?i.backdrop||i.cover:i.cover)?[landscape?i.backdrop||i.cover!:i.cover!]:[]);
   const urls=useAssetUrls(pluginId,assets);let n=0;
   return <div className={`hpp-cards ${landscape?"hpp-landscape":""}`}>{items.map((item,index)=>{
@@ -61,5 +64,25 @@ export function WaterfallCards({ pluginId, items, open }: { pluginId: string; it
   let image = 0;
   return <div className="hpp-grid">
     {items.map(item => <GridCard key={item.id} item={item} cover={item.cover ? urls[image++] : undefined} onOpen={() => open(item)}/>)}
+  </div>;
+}
+
+/** Flow row: covers keep their own aspect ratio, so cards vary in width and height while staying on one line. */
+function FlowCard({ item, cover, onOpen }: { item: MediaItem; cover?: string; onOpen: () => void }) {
+  const meta = [item.year, item.type, item.episodeCount ? `${item.episodeCount} 集` : null].filter(Boolean).join(" · ");
+  return <button className="hpp-media-card hpp-flow-card" onClick={onOpen}>
+    <div className="hpp-poster">{cover ? <img src={cover} alt="" loading="lazy"/> : <span>{item.title.slice(0, 2)}</span>}{item.badge && <small>{item.badge}</small>}</div>
+    <div className="hpp-flow-caption">
+      <strong>{item.title}</strong>
+      {meta && <p>{meta}</p>}
+    </div>
+  </button>;
+}
+
+export function FlowCards({ pluginId, items, open }: { pluginId: string; items: MediaItem[]; open: (item: MediaItem) => void }) {
+  const urls = useAssetUrls(pluginId, items.flatMap(item => item.cover ? [item.cover] : []));
+  let image = 0;
+  return <div className="hpp-flow">
+    {items.map(item => <FlowCard key={item.id} item={item} cover={item.cover ? urls[image++] : undefined} onOpen={() => open(item)}/>)}
   </div>;
 }

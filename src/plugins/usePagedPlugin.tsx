@@ -60,7 +60,7 @@ export function PageLoadMore({ next, busy, error, more, label = "加载更多", 
   const count = (skeleton?.columns ?? 6) * (skeleton?.rows ?? 2);
   return <>
     <div ref={sentinel} className="hpp-page-sentinel" aria-hidden="true"/>
-    {pending && <div className="hpp-page-skeleton" aria-hidden="true">{Array.from({ length: count }, (_, i) => <div className="hpp-page-skeleton-card" key={i}><div className="hpp-page-skeleton-poster"/><div className="hpp-page-skeleton-line"/><div className="hpp-page-skeleton-line short"/></div>)}</div>}
+    {pending && <div className="hpp-page-skeleton" aria-hidden="true">{Array.from({ length: count }, (_, i) => <div className="hpp-page-skeleton-card" key={i}><div className="hpp-page-skeleton-poster"/><div className="hpp-page-skeleton-line top"/><div className="hpp-page-skeleton-line"/><div className="hpp-page-skeleton-line meta"/></div>)}</div>}
     {error
       ? <button className="hpp-more" onClick={more}>加载失败，点击重试</button>
       : !pending && <button className="hpp-more" disabled={!next} onClick={more}>{next ? label : "没有更多内容"}</button>}
