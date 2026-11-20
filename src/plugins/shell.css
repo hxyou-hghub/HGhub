@@ -54,7 +54,7 @@
 .win-sidebar-inner{padding-top:10px}
 .win-nav-items{gap:5px}
 .win-account.is-selected{background:var(--p-tint);color:var(--p-primary)}
-.hpp-plugins-page .hpp-content{max-width:1080px;margin:0;padding-top:8px}
+.hpp-plugins-page .hpp-content{max-width:1080px;margin:auto;padding-top:8px}
 .hpp-plugin-group{margin-bottom:25px}
 .hpp-plugin-group>h2{font-size:13px;color:var(--p-mut);letter-spacing:0;font-weight:500;display:flex;align-items:center;gap:8px;margin:18px 0 10px}
 .hpp-plugin-group>h2 small{font-size:10px}
