@@ -547,3 +547,43 @@ html.theme-light .article-body { color: rgba(20,24,30,.82); }
 .hg-tabbar button:focus-visible,
 .hg-player-ui button:focus,
 .hg-player-ui button:focus-visible { outline: none; }
+
+/* ——— 标题栏全局音量控件：悬浮展开竖向滑条，纵向滑动调音量 ——— */
+.win-volume { position: relative; display: inline-flex; align-items: center; }
+/* 透明桥接区：把按钮与浮层之间的间隙纳入命中范围，避免指针经过空隙时 hover 中断导致浮层消失 */
+.win-volume::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 12px;
+  pointer-events: auto;
+}
+.win-volume-flyout {
+  position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(-4px);
+  width: 34px; height: 140px; border-radius: 10px; padding: 24px 0 14px;
+  display: flex; align-items: stretch; justify-content: center;
+  background: var(--p-s2); border: 1px solid var(--p-hover);
+  box-shadow: 0 8px 22px rgba(0,0,0,.35);
+  opacity: 0; pointer-events: none; transition: opacity .16s ease, transform .16s ease;
+  z-index: 20;
+}
+/* 仅由 hover / focus 或拖动锁定驱动，指针在按钮、桥接区或浮层内均保持展开 */
+.win-volume:hover .win-volume-flyout,
+.win-volume:focus-within .win-volume-flyout,
+.win-volume[data-locked="true"] .win-volume-flyout {
+  opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0);
+}
+.win-volume-bubble {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; font-weight: 600; color: var(--p-on); letter-spacing: .2px;
+}
+.win-volume-track {
+  position: relative; width: 6px; height: 100%; border-radius: 99px;
+  background: var(--p-hover); cursor: ns-resize; touch-action: none;
+}
+.win-volume-fill {
+  position: absolute; left: 0; right: 0; bottom: 0; border-radius: 99px;
+  background: var(--p-primary); pointer-events: none;
+}
+.win-volume-track::after {
+  content: ""; position: absolute; left: 50%; width: 12px; height: 12px; border-radius: 50%;
+  background: #fff; transform: translate(-50%, 50%); box-shadow: 0 1px 3px rgba(0,0,0,.45);
+  bottom: var(--pct, 70%); pointer-events: none;
+}

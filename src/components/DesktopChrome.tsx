@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useStore, type Tab } from "../store";
 import { APP_VERSION } from "../environment";
@@ -8,6 +8,64 @@ import {
 } from "../icons";
 
 const appWindow = () => getCurrentWindow();
+
+/* 标题栏全局音量控件：悬浮展开竖向滑条，纵向滑动按位移比例实时调节音量，松手收起并保留结果。
+   无位移的点击保留为静音切换。显隐由 CSS :hover / focus-within / [data-locked] 驱动，
+   配合桥接区保证指针从按钮移向浮层时不中断 hover。 */
+export function TitlebarVolume() {
+  const { volume, muted, toggleMute, applyVolume } = useStore();
+  const [locked, setLocked] = useState(false);
+  const drag = useRef<{ startY: number; startVol: number; moved: boolean; onMove: (e: PointerEvent) => void; onUp: (e: PointerEvent) => void } | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const effVolume = muted ? 0 : volume;
+  const silent = muted || volume === 0;
+
+  const volFromY = (clientY: number, state: { startY: number; startVol: number }) => {
+    const height = trackRef.current?.clientHeight || 48;
+    return Math.min(1, Math.max(0, state.startVol + (state.startY - clientY) / height));
+  };
+
+  const onMove = (e: PointerEvent) => {
+    const state = drag.current; if (!state) return;
+    if (Math.abs(e.clientY - state.startY) > 2) state.moved = true;
+    if (state.moved) applyVolume(volFromY(e.clientY, state));
+  };
+  const onUp = (e: PointerEvent) => {
+    const state = drag.current; if (!state) return;
+    drag.current = null; setLocked(false);
+    window.removeEventListener("pointermove", state.onMove);
+    window.removeEventListener("pointerup", state.onUp);
+    if (!state.moved) toggleMute();
+  };
+  const startDrag = (e: React.PointerEvent) => {
+    e.preventDefault();
+    if (drag.current) return;
+    drag.current = { startY: e.clientY, startVol: muted ? 0 : volume, moved: false, onMove, onUp };
+    setLocked(true);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+  useEffect(() => () => {
+    const state = drag.current; if (!state) return;
+    window.removeEventListener("pointermove", state.onMove);
+    window.removeEventListener("pointerup", state.onUp);
+  }, []);
+
+  return <div className="win-volume" data-locked={locked}>
+    <button className="win-caption-tool" aria-label={silent ? "取消静音" : "静音"}
+      aria-pressed={!silent} title="拖动调节音量，点击静音"
+      onPointerDown={startDrag}>
+      {silent ? <IVolMute size={17} strokeWidth={1.7} /> : <IVol size={17} strokeWidth={1.7} />}
+    </button>
+    <div className="win-volume-flyout" role="presentation" onPointerDown={startDrag}>
+      <span className="win-volume-bubble">{Math.round(effVolume * 100)}</span>
+      <div ref={trackRef} className="win-volume-track"
+        style={{ "--pct": `${effVolume * 100}%` } as React.CSSProperties}>
+        <span className="win-volume-fill" style={{ height: `${effVolume * 100}%` }} />
+      </div>
+    </div>
+  </div>;
+}
 
 export function PlaybackWindowActions() {
   const { platform } = useStore();
@@ -25,7 +83,7 @@ export function PlaybackWindowActions() {
 }
 
 export function DesktopTitleBar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
-  const { theme, setTheme, platform, muteOnStartup, toggleMute } = useStore();
+  const { theme, setTheme, platform } = useStore();
   const [maxed, setMaxed] = useState(false);
   /* macOS 原生全屏：红绿灯被系统隐藏，标题栏左侧 84px 让位要收回（见 index.css） */
   const [nativeFs, setNativeFs] = useState(false);
@@ -53,9 +111,7 @@ export function DesktopTitleBar({ collapsed, onToggle }: { collapsed: boolean; o
         <ISidebar size={17} strokeWidth={1.7} />
       </button>
       <div className="win-drag-region" data-tauri-drag-region />
-      <button className="win-caption-tool" aria-label={muteOnStartup ? "取消全局静音" : "全局静音"} aria-pressed={muteOnStartup} onClick={toggleMute}>
-        {muteOnStartup ? <IVolMute size={17} strokeWidth={1.7} /> : <IVol size={17} strokeWidth={1.7} />}
-      </button>
+      <TitlebarVolume />
       <button className="win-caption-tool" aria-label="切换外观" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
         {theme === "dark" ? <ISun size={17} strokeWidth={1.7} /> : <IMoon size={17} strokeWidth={1.7} />}
       </button>

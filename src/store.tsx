@@ -7,7 +7,7 @@ export type Theme = "dark" | "light";
 const TABS: Tab[] = ["home", "search", "category", "profile"];
 export type StartPage = Tab | "settings" | "plugins";
 const START_PAGES: StartPage[] = [...TABS, "settings", "plugins"];
-export type PageInput = { kind: "plugins"; focusId?: string } | { kind: "settings" } | { kind: "media"; pluginId: string; mediaId: string; start?: SourceStart } | { kind: "section"; pluginId: string; sectionId: string; title?: string } | { kind: "live"; pluginId: string } | { kind: "articles"; pluginId: string } | { kind: "article"; pluginId: string; articleId: string } | { kind: "feed"; pluginId: string } | { kind: "recommendations"; pluginId: string };
+export type PageInput = { kind: "plugins"; focusId?: string } | { kind: "settings" } | { kind: "media"; pluginId: string; mediaId: string; start?: SourceStart; autoPlay?: boolean } | { kind: "section"; pluginId: string; sectionId: string; title?: string } | { kind: "live"; pluginId: string } | { kind: "articles"; pluginId: string } | { kind: "article"; pluginId: string; articleId: string } | { kind: "feed"; pluginId: string } | { kind: "recommendations"; pluginId: string };
 export type Page = PageInput & { key: string };
 function read<T>(key: string, fallback: T): T { try { return JSON.parse(localStorage.getItem(key) || "null") ?? fallback; } catch { return fallback; } }
 function startupPage(start: StartPage): Page | null {
@@ -38,10 +38,15 @@ function useApplication() {
   const toggleMute = useCallback(() => {
     setMuteOnStartup(next => { const on = !next; setMuted(on); return on; });
   }, []);
+  /* 全局音量：调整即取消静音并立即生效；音量为 0 时视为静音偏好，持久化供下次启动沿用 */
+  const applyVolume = useCallback((v: number) => {
+    const next = Math.min(1, Math.max(0, v));
+    setVolume(next); setMuted(false); setMuteOnStartup(next === 0);
+  }, []);
   const push = useCallback((p: PageInput) => setStack(old => [...old, { ...p, key: crypto.randomUUID() }]), []);
   const replace = useCallback((p: PageInput) => setStack(old => [...old.slice(0, -1), { ...p, key: crypto.randomUUID() }]), []);
   const pop = useCallback(() => setStack(old => old.slice(0, -1)), []);
-  return { watching, setWatching, platform, theme, setTheme, startTab, setStartTab, tab, setTab, stack, push, replace, pop, muteOnStartup, setMuteOnStartup, toggleMute, volume, setVolume, muted, setMuted, theater, setTheater, fs, setFs, clean, setClean, strictSecurity, strictSecurityReady, securityPending, setStrictSecurity, error, sourceErrors, setSourceErrors };
+  return { watching, setWatching, platform, theme, setTheme, startTab, setStartTab, tab, setTab, stack, push, replace, pop, muteOnStartup, setMuteOnStartup, toggleMute, applyVolume, volume, setVolume, muted, setMuted, theater, setTheater, fs, setFs, clean, setClean, strictSecurity, strictSecurityReady, securityPending, setStrictSecurity, error, sourceErrors, setSourceErrors };
 }
 const Context = createContext<ReturnType<typeof useApplication>>(null!);
 export const useStore = () => useContext(Context);

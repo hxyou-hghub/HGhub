@@ -231,10 +231,11 @@ export default function Feed({media, position, active=true, preparing=false, err
         case "pageup":if(!preview){e.preventDefault();onPreviousEpisode?.();}break;case "pagedown":if(!preview){e.preventDefault();onNextEpisode?.();}break;
         case "m":setMuted(v=>!v);break;case "t":break;case "f":isDesktop?toggleFull():(fs?exitFs():enterFs());break;
         case "c":if(panels.comments)setPanel("comments");break;case "e":if(preview)onOpenDetail?.();else if(panels.episodes)setPanel("episodes");break;
+        case "escape":if(preview)break;e.preventDefault();if(document.fullscreenElement){void document.exitFullscreen();break;}if(store.clean){store.setClean(false);break;}onBack?.();break;
       }
       wake();
     };window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);
-  },[active,controlsLocked,panel,time,onNext,onPrevious,fs,preview,onNextEpisode,onPreviousEpisode]);
+  },[active,controlsLocked,panel,time,onNext,onPrevious,fs,preview,onNextEpisode,onPreviousEpisode,onBack,store]);
   const showDetails = () => { if (!isDesktop && fs) { setPanel('detail'); return; } setPanel(null); if (onOpenDetail) onOpenDetail(); else setPanel("detail"); };
   const panelContent=panel && <><header className="legacy-panel-heading"><h2>{{detail:"作品详情",episodes:"选集",comments:"评论",playback:"画质与线路",more:"更多播放选项"}[panel]}</h2><button aria-label="关闭面板" onClick={()=>setPanel(null)}><IClose size={18}/></button></header><div className="legacy-panel-body">
     {panel === "more" ? <div className="hg-more-menu">

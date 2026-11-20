@@ -31,7 +31,7 @@ function Application() {
   useEffect(()=>{if(app.tab==="category")setCategoryVisited(true);},[app.tab]);
   useEffect(()=>{if(app.platform!=="android")return;let disposed=false;let listener:{unregister:()=>Promise<void>}|undefined;void addPluginListener("app","back-button",()=>backRef.current()).then(l=>{if(disposed)void l.unregister();else listener=l;}).catch(()=>{});return()=>{disposed=true;void listener?.unregister();};},[app.platform]);
   const manage=(focusId?:string)=>{host.clearAuth();app.push({kind:"plugins",focusId});};
-  const open=(pluginId:string,mediaId:string)=>app.push({kind:"media",pluginId,mediaId});
+  const open=(pluginId:string,mediaId:string,autoPlay?:boolean)=>app.push({kind:"media",pluginId,mediaId,autoPlay});
   useEffect(()=>{const fn=(e:KeyboardEvent)=>{
     const target=e.target as HTMLElement;
     if(e.defaultPrevented||document.querySelector("dialog[open]")||target.closest("input,textarea,select,[contenteditable=true],[role=dialog]"))return;
@@ -50,7 +50,7 @@ function Application() {
         {(categoryVisited||app.tab==="category")&&<PluginCategory open={open} manage={manage} openContent={(kind,pluginId)=>app.push({kind,pluginId})}/>}
       </div>
       {app.stack.map((page,i)=><div key={page.key} className={`absolute inset-0 ${page.kind==="media"?"":"bg-bg"} ${i===app.stack.length-1?"z-30":i===app.stack.length-2&&top?.kind==="media"&&!app.watching?"pointer-events-none":"invisible pointer-events-none"}`}>
-        {page.kind==="plugins"?<Plugins onBack={app.pop} focusId={page.focusId}/>:page.kind==="settings"?<ApplicationSettings onBack={app.pop}/>:page.kind==="section"?<SectionRoute {...page} open={open} onBack={app.pop}/>:page.kind==="media"?<MediaPage pluginId={page.pluginId} mediaId={page.mediaId} start={page.start} onBack={app.pop} manage={manage} active={i===app.stack.length-1} onSwitch={(pluginId,mediaId,start)=>app.replace({kind:"media",pluginId,mediaId,start})}/>:<ContentRoute page={page} active={i===app.stack.length-1}/>}
+        {page.kind==="plugins"?<Plugins onBack={app.pop} focusId={page.focusId}/>:page.kind==="settings"?<ApplicationSettings onBack={app.pop}/>:page.kind==="section"?<SectionRoute {...page} open={open} onBack={app.pop}/>:page.kind==="media"?<MediaPage pluginId={page.pluginId} mediaId={page.mediaId} start={page.start} autoPlay={page.autoPlay} onBack={app.pop} manage={manage} active={i===app.stack.length-1} onSwitch={(pluginId,mediaId,start)=>app.replace({kind:"media",pluginId,mediaId,start})}/>:<ContentRoute page={page} active={i===app.stack.length-1}/>}
       </div>)}
       {host.authPrompt&&<div className="hpp-global-auth" role="status"><span>{host.authPrompt.message}</span><button onClick={()=>manage(host.authPrompt?.id)}>前往插件登录</button><button onClick={host.clearAuth}>关闭</button></div>}
       {pendingUpdates(host.updates).length>0&&!top&&<div className="hpp-global-updates" role="status"><span>{pendingUpdates(host.updates).length} 个插件有更新{host.updates.policy.autoInstall?"，将在播放结束后安装":""}</span><button onClick={()=>manage()}>查看插件更新</button></div>}
@@ -73,9 +73,9 @@ function SectionRoute({pluginId,sectionId,title,open,onBack}:{pluginId:string;se
   const plugin=useHost().sources.find(p=>p.meta.id===pluginId);
   return plugin?<SectionPage key={pluginId+sectionId+plugin.revision} plugin={plugin} sectionId={sectionId} title={title} open={open} onBack={onBack}/>:<BrowseFrame title="来源不可用" onBack={onBack}><p>请启用该分区的数据源。</p></BrowseFrame>;
 }
-function MediaPage({pluginId,mediaId,onBack,manage,active,start,onSwitch}: {pluginId:string;mediaId:string;onBack:()=>void;manage:()=>void;active:boolean;start?:SourceStart;onSwitch:(pluginId:string,mediaId:string,start?:SourceStart)=>void}) {
+function MediaPage({pluginId,mediaId,onBack,manage,active,start,autoPlay,onSwitch}: {pluginId:string;mediaId:string;onBack:()=>void;manage:()=>void;active:boolean;start?:SourceStart;autoPlay?:boolean;onSwitch:(pluginId:string,mediaId:string,start?:SourceStart)=>void}) {
   const host=useHost(),plugin=host.sources.find(p=>p.meta.id===pluginId);
-  return plugin?<PluginMediaDetail key={pluginId+mediaId+plugin.revision} plugin={plugin} mediaId={mediaId} onBack={onBack} manage={manage} active={active} start={start} onSwitch={onSwitch}/>:<BrowseFrame title="来源不可用" onBack={onBack} tools={<button onClick={manage}>管理插件</button>}><p>请重新导入或启用该作品的数据源。</p></BrowseFrame>;
+  return plugin?<PluginMediaDetail key={pluginId+mediaId+plugin.revision} plugin={plugin} mediaId={mediaId} onBack={onBack} manage={manage} active={active} start={start} autoPlay={autoPlay} onSwitch={onSwitch}/>:<BrowseFrame title="来源不可用" onBack={onBack} tools={<button onClick={manage}>管理插件</button>}><p>请重新导入或启用该作品的数据源。</p></BrowseFrame>;
 }
 
 function TabBar() {

@@ -13,7 +13,7 @@ import { IGrid, IChevR, IBack, ISearch, IClose, ISettings, IFireF, IRefresh } fr
 // Cache fulfilled metadata only. A view owns its in-flight request and may cancel it.
 const categoryTrees = new Map<string, { revision: string; tree: Category[] }>();
 
-export type OpenMedia = (pluginId:string,mediaId:string)=>void;
+export type OpenMedia = (pluginId:string,mediaId:string,autoPlay?:boolean)=>void;
 export function BrowseFrame({title,children,tools,onBack}:{title:string;children:React.ReactNode;tools?:React.ReactNode;onBack?:()=>void}) {
   return (
     <div className="hpp-page">
@@ -159,7 +159,7 @@ function CategoryResults({plugin:p,category,open}:{plugin:InstalledPlugin;catego
     <FilterControls filters={filters} values={values} change={setValues}/>
     {!!sorts.length&&<label className="hpp-sort">排序 <select aria-label="分类排序" value={sort} onChange={e=>setSort(e.target.value)}><option value="">默认</option>{sorts.map(s=><option value={s.id} key={s.id}>{s.label}</option>)}</select></label>}
     {hasItems&&<Notice error={activeError} retry={list.error?list.retry:undefined} retryLabel="重试分类"/>}
-    {list.busy&&!list.page?<div className="hpp-skeleton"/>:hasItems?<WaterfallCards pluginId={p.meta.id} items={list.page!.items} open={i=>open(p.meta.id,i.id)}/>:null}
+    {list.busy&&!list.page?<div className="hpp-skeleton"/>:hasItems?<WaterfallCards pluginId={p.meta.id} items={list.page!.items} open={i=>open(p.meta.id,i.id,true)}/>:null}
     {!list.busy&&!hasItems&&activeError&&<ErrorState error={activeError} retry={list.error?list.retry:undefined} retryLabel="重试分类"/>}
     {!list.busy&&!hasItems&&!activeError&&<div className="py-16 text-center text-mut a-rise"><IGrid size={32} className="mx-auto mb-3 opacity-30 text-dim"/><p className="text-sm font-medium">暂无分类内容</p><p className="text-xs text-dim mt-1.5">可尝试选择其他分类或筛选条件</p></div>}
     {hasItems&&<PageLoadMore next={list.page?.next} busy={list.busy} error={list.error} more={list.more}/>}

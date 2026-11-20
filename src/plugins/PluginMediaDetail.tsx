@@ -29,9 +29,9 @@ export function alignedEpisode(previous: Episode, episodes: Episode[]) {
   const matches = episodes.filter(e => e.episodeNumber === previous.episodeNumber && e.season === previous.season);
   return matches.length === 1 ? matches[0] : undefined;
 }
-export default function PluginMediaDetail({ plugin, mediaId, onBack, manage, active = true, start, onSwitch, presentation = {}, entryEpisodeId, entryItem }: {
+export default function PluginMediaDetail({ plugin, mediaId, onBack, manage, active = true, start, autoPlay = false, onSwitch, presentation = {}, entryEpisodeId, entryItem }: {
   plugin: InstalledPlugin; mediaId: string; onBack?: () => void; manage: () => void; active?: boolean; presentation?: FeedPresentation; entryEpisodeId?: string; entryItem?: MediaItem;
-  start?: SourceStart; onSwitch: (pluginId: string, mediaId: string, start?: SourceStart) => void;
+  start?: SourceStart; autoPlay?: boolean; onSwitch: (pluginId: string, mediaId: string, start?: SourceStart) => void;
 }) {
   const app = useStore();
   const viewActive = useRef(active); viewActive.current = active;
@@ -39,8 +39,8 @@ export default function PluginMediaDetail({ plugin, mediaId, onBack, manage, act
   const [detail, setDetail] = useState<MediaDetail | null>(() => peekMetadata<MediaDetail>(plugin, 'media.getDetail', { id: mediaId }) || null), [error, setError] = useState("");
   const homePreview = presentation.mode === "preview";
   const [playIntent, setPlayIntent] = useState(0);
-  const [fullPlayback, setFullPlayback] = useState(!!start);
-  const [detailOpen, setDetailOpen] = useState(!homePreview && !start);
+  const [fullPlayback, setFullPlayback] = useState(!!start || autoPlay);
+  const [detailOpen, setDetailOpen] = useState(!homePreview && !start && !autoPlay);
   const [detailRound, setDetailRound] = useState(0);
   const [needsDetail, setNeedsDetail] = useState(!entryEpisodeId || !homePreview);
   const [episodePage, setEpisodePage] = useState(0);
@@ -195,6 +195,21 @@ export default function PluginMediaDetail({ plugin, mediaId, onBack, manage, act
       if (available) setChoices(available);
     } finally { if (n === sequence.current) { transitioning.current = false; setBusy(false); } }
   };
+  useEffect(() => {
+    if (!detail || !autoPlay || start || !active || !canPlay) return;
+    const lists = detail.playlists || [];
+    if (lists.length !== 1) {
+      if (lists.length > 1) { setFullPlayback(false); setDetailOpen(true); }
+      return;
+    }
+    const episodes = lists[0].episodes;
+    if (episodes.length !== 1 || lists[0].next) return;
+    const only = episodes[0];
+    if (only.locked) { setFullPlayback(false); setDetailOpen(true); return; }
+    autoStarted.current = true;
+    setPlaylist(lists[0].id);
+    void play(only, "play", lists[0].id);
+  }, [detail, autoPlay, start, active, canPlay]);
   useEffect(() => {
     if (!start || !detail || !active || !canPlay || startedFromSource.current) return;
     startedFromSource.current = true;
