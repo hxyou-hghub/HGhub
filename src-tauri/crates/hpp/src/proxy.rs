@@ -159,6 +159,7 @@ pub fn get() -> Value {
 /// Construct a route per request so changes apply to existing provider instances.
 /// Reqwest handles Windows/macOS fixed proxies, environment variables and NO_PROXY.
 pub(crate) fn configure(builder: reqwest::ClientBuilder, config: &Config) -> Result<reqwest::ClientBuilder, String> {
+    let builder = with_extra_ca(builder)?;
     let explicit = match config.mode {
         Mode::Off => return Ok(builder.no_proxy()),
         Mode::Custom => Some(config.url.clone()),
@@ -169,6 +170,28 @@ pub(crate) fn configure(builder: reqwest::ClientBuilder, config: &Config) -> Res
         Some(url) => Ok(builder.no_proxy().proxy(reqwest::Proxy::all(url).map_err(|_| "代理配置无效")?)),
         None => Ok(builder),
     }
+}
+
+/// Debug-only: trust an extra PEM CA (e.g. a local capture proxy like Reqable/mitmproxy)
+/// when `HGHUB_EXTRA_CA` names a readable file. Absent the variable the client is unchanged.
+fn with_extra_ca(builder: reqwest::ClientBuilder) -> Result<reqwest::ClientBuilder, String> {
+    let path = std::env::var("HGHUB_EXTRA_CA").ok().filter(|s| !s.trim().is_empty());
+    add_root_ca_from_path(builder, path.as_deref())
+}
+
+fn add_root_ca_from_path(builder: reqwest::ClientBuilder, path: Option<&str>) -> Result<reqwest::ClientBuilder, String> {
+    let Some(path) = path else { return Ok(builder) };
+    let pem = std::fs::read(path).map_err(|_| format!("无法读取 HGHUB_EXTRA_CA：{path}"))?;
+    let certs = reqwest::Certificate::from_pem_bundle(&pem)
+        .map_err(|_| "HGHUB_EXTRA_CA 不是有效的 PEM 证书".to_string())?;
+    if certs.is_empty() {
+        return Err("HGHUB_EXTRA_CA 未包含任何证书".to_string());
+    }
+    let mut builder = builder.tls_built_in_root_certs(true);
+    for cert in certs {
+        builder = builder.add_root_certificate(cert);
+    }
+    Ok(builder)
 }
 
 #[cfg(target_os = "android")]
@@ -485,6 +508,23 @@ mod tests {
         std::fs::remove_file(dir.join("proxy.json")).unwrap();
         state.bind(&dir);
         assert!(state.config == Config::default());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn extra_ca_is_optional_and_rejects_unreadable_or_invalid_pem() {
+        // No path: the builder passes through untouched.
+        assert!(add_root_ca_from_path(reqwest::Client::builder(), None).is_ok());
+
+        // Missing file: a clear error surfaces instead of a silent fallback.
+        let missing = temp_dir().join("absent-ca.pem");
+        assert!(add_root_ca_from_path(reqwest::Client::builder(), Some(missing.to_str().unwrap())).is_err());
+
+        // Non-PEM content: rejected rather than trusted.
+        let dir = temp_dir();
+        let bogus = dir.join("bogus.pem");
+        std::fs::write(&bogus, b"not a certificate").unwrap();
+        assert!(add_root_ca_from_path(reqwest::Client::builder(), Some(bogus.to_str().unwrap())).is_err());
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

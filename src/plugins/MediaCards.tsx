@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ImageRef, MediaItem } from "./protocol";
 import { pluginCommand, releaseMedia } from "./client";
 
@@ -27,51 +27,23 @@ export default function MediaCards({ pluginId, items, open, landscape=false }: {
   })}</div>;
 }
 
-const WATERFALL_MIN_COLUMN = 148;
-const WATERFALL_GAP = 14;
-const WATERFALL_MAX_COLUMNS = 6;
-
-function useWaterfallColumns(host: React.RefObject<HTMLDivElement | null>) {
-  const [count, setCount] = useState(2);
-  useEffect(() => {
-    const node = host.current;
-    if (!node) return;
-    const measure = () => {
-      if (!node.clientWidth) return;
-      setCount(Math.max(2, Math.min(WATERFALL_MAX_COLUMNS,
-        Math.floor((node.clientWidth + WATERFALL_GAP) / (WATERFALL_MIN_COLUMN + WATERFALL_GAP)))));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [host]);
-  return count;
-}
-
-function WaterfallCard({ item, cover, onOpen }: { item: MediaItem; cover?: string; onOpen: () => void }) {
+function GridCard({ item, cover, onOpen }: { item: MediaItem; cover?: string; onOpen: () => void }) {
   const meta = [item.year, item.type, item.episodeCount ? `${item.episodeCount} 集` : null].filter(Boolean).join(" · ");
-  return <button className="hpp-media-card hpp-waterfall-card" onClick={onOpen}>
+  return <button className="hpp-media-card hpp-grid-card" onClick={onOpen}>
     <div className="hpp-poster">{cover ? <img src={cover} alt="" loading="lazy"/> : <span>{item.title.slice(0, 2)}</span>}{item.badge && <small>{item.badge}</small>}</div>
-    <strong>{item.title}</strong>
-    {item.description && <span className="hpp-waterfall-desc">{item.description}</span>}
-    {meta && <p>{meta}</p>}
-    {!!item.tags?.length && <span className="hpp-waterfall-tags">{item.tags.slice(0, 3).join(" · ")}</span>}
+    <div className="hpp-grid-caption">
+      <strong>{item.title}</strong>
+      {meta && <p>{meta}</p>}
+    </div>
   </button>;
 }
 
-/** Masonry columns keep already-loaded pages in place when the next page is appended. */
+/** Uniform grid: every thumbnail shares one fixed size and every caption is two lines tall,
+ *  so rows and columns stay aligned regardless of title length. */
 export function WaterfallCards({ pluginId, items, open }: { pluginId: string; items: MediaItem[]; open: (item: MediaItem) => void }) {
-  const host = useRef<HTMLDivElement>(null);
-  const columns = useWaterfallColumns(host);
   const urls = useAssetUrls(pluginId, items.flatMap(item => item.cover ? [item.cover] : []));
   let image = 0;
-  const cards = items.map(item => ({ item, cover: item.cover ? urls[image++] : undefined }));
-  const buckets: typeof cards[] = Array.from({ length: columns }, () => []);
-  cards.forEach((card, index) => buckets[index % columns].push(card));
-  return <div className="hpp-waterfall" ref={host}>
-    {buckets.map((bucket, index) => <div className="hpp-waterfall-column" key={index}>
-      {bucket.map(({ item, cover }) => <WaterfallCard key={item.id} item={item} cover={cover} onOpen={() => open(item)}/>)}
-    </div>)}
+  return <div className="hpp-grid">
+    {items.map(item => <GridCard key={item.id} item={item} cover={item.cover ? urls[image++] : undefined} onOpen={() => open(item)}/>)}
   </div>;
 }

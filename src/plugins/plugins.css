@@ -152,10 +152,10 @@ html.theme-light .hpp-error{background:linear-gradient(135deg,rgba(239,68,68,.08
 .hpp-search>input{flex:1;background:transparent!important;border:0!important;outline:none}
 .hpp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:24px 18px}
 .hpp-page button.hpp-media-card{display:block;padding:0;text-align:left;background:transparent;min-width:0}
-.hpp-poster{position:relative;aspect-ratio:2/3;border-radius:11px;background:linear-gradient(145deg,#6c7d462c,#627f7933);overflow:hidden;display:grid;place-items:center}
+.hpp-poster{position:relative;aspect-ratio:1.41;border-radius:4px;background:linear-gradient(145deg,#6c7d462c,#627f7933);overflow:hidden;display:grid;place-items:center}
 .hpp-poster>span{font-size:32px;opacity:.45;letter-spacing:4px}
 .hpp-poster img{width:100%;height:100%;object-fit:cover}
-.hpp-poster small{position:absolute;right:7px;top:7px;font-size:10px;padding:3px 5px;background:#0009;color:white;border-radius:4px}
+.hpp-poster small{position:absolute;right:4px;bottom:4px;top:auto;font-size:12px;font-weight:600;line-height:1;padding:4px 5px;background:rgba(0,0,0,.8);color:#fff;border-radius:2px}
 .hpp-media-card strong{display:block;font-size:13px;margin-top:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hpp-media-card p{font-size:10px;opacity:.4;margin-top:4px}
 .hpp-page button.hpp-more,

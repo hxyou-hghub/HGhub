@@ -305,6 +305,8 @@ function PluginOptionsModal({
   const [settings, setSettings] = useState<Record<string, unknown>>({});
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [logs, setLogs] = useState<unknown[]>([]);
+  const [logsBusy, setLogsBusy] = useState(false);
+  const [logsNotice, setLogsNotice] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [probes, setProbes] = useState<{ id: string; url: string; ok: boolean; latencyMs: number; status?: number; error?: string }[]>([]);
@@ -361,6 +363,22 @@ function PluginOptionsModal({
       }
     } finally {
       setBusy(false);
+    }
+  };
+
+  const loadLogs = async () => {
+    setLogsBusy(true);
+    setError("");
+    setLogsNotice("");
+    try {
+      const rows = await request<unknown[]>("logs", { id: p.meta.id });
+      setLogs(rows);
+      setLogsNotice(rows.length ? `已获取 ${rows.length} 条日志` : "暂无运行日志");
+    } catch (e) {
+      const err = pluginError(e);
+      if (err !== "调用已取消" && (e as any)?.code !== "CANCELLED") setError(err);
+    } finally {
+      setLogsBusy(false);
     }
   };
 
@@ -562,7 +580,7 @@ function PluginOptionsModal({
                     <button
                       type="button"
                       className="hpp-section-btn opacity-70 hover:opacity-100"
-                      onClick={() => setLogs([])}
+                      onClick={() => { setLogs([]); setLogsNotice(""); }}
                     >
                       清空
                     </button>
@@ -570,12 +588,10 @@ function PluginOptionsModal({
                   <button
                     type="button"
                     className="hpp-section-btn"
-                    onClick={() => void request<unknown[]>("logs", { id: p.meta.id }).then(setLogs).catch(e => {
-                      const err = pluginError(e);
-                      if (err !== "调用已取消" && (e as any)?.code !== "CANCELLED") setError(err);
-                    })}
+                    disabled={logsBusy}
+                    onClick={() => void loadLogs()}
                   >
-                    <IRefresh size={12} />
+                    <IRefresh size={12} className={logsBusy ? "animate-spin" : ""} />
                     <span>刷新日志</span>
                   </button>
                 </div>
@@ -585,18 +601,23 @@ function PluginOptionsModal({
                 <pre className="hpp-logs !mt-0 !max-h-[360px]">{logs.map(x => (typeof x === "string" ? x : JSON.stringify(x))).join("\n")}</pre>
               ) : (
                 <div className="hpp-empty-logs flex-col gap-2 py-8">
-                  <span className="opacity-70">暂无运行日志</span>
+                  <span className="opacity-70">{logsBusy ? "正在获取运行日志…" : "暂无运行日志"}</span>
                   <button
                     type="button"
                     className="hpp-section-btn text-xs mt-1"
-                    onClick={() => void request<unknown[]>("logs", { id: p.meta.id }).then(setLogs).catch(e => {
-                      const err = pluginError(e);
-                      if (err !== "调用已取消" && (e as any)?.code !== "CANCELLED") setError(err);
-                    })}
+                    disabled={logsBusy}
+                    onClick={() => void loadLogs()}
                   >
-                    <IRefresh size={12} />
+                    <IRefresh size={12} className={logsBusy ? "animate-spin" : ""} />
                     <span>获取近期运行日志</span>
                   </button>
+                </div>
+              )}
+
+              {logsNotice && (
+                <div role="status" className="flex items-center gap-1.5 text-xs opacity-70">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>{logsNotice}</span>
                 </div>
               )}
             </section>

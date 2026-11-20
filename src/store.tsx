@@ -34,10 +34,14 @@ function useApplication() {
   useEffect(() => { void invoke<{strict_security:boolean}>("app_boot").then(v => { setStrict(v.strict_security); setSecurityReady(true); }).catch(() => setError("无法读取网络设置")); }, []);
   const setStrictSecurity = useCallback(async (strict: boolean) => { setPending(true); try { setStrict(await invoke<boolean>("security_set", { strict })); } finally { setPending(false); } }, []);
   const setTab = useCallback((tab: Tab) => { setTabRaw(tab); setStack([]); }, []);
+  /* 全局静音开关：默认静音，切换后立即作用于当前播放，并持久化供下次启动沿用 */
+  const toggleMute = useCallback(() => {
+    setMuteOnStartup(next => { const on = !next; setMuted(on); return on; });
+  }, []);
   const push = useCallback((p: PageInput) => setStack(old => [...old, { ...p, key: crypto.randomUUID() }]), []);
   const replace = useCallback((p: PageInput) => setStack(old => [...old.slice(0, -1), { ...p, key: crypto.randomUUID() }]), []);
   const pop = useCallback(() => setStack(old => old.slice(0, -1)), []);
-  return { watching, setWatching, platform, theme, setTheme, startTab, setStartTab, tab, setTab, stack, push, replace, pop, muteOnStartup, setMuteOnStartup, volume, setVolume, muted, setMuted, theater, setTheater, fs, setFs, clean, setClean, strictSecurity, strictSecurityReady, securityPending, setStrictSecurity, error, sourceErrors, setSourceErrors };
+  return { watching, setWatching, platform, theme, setTheme, startTab, setStartTab, tab, setTab, stack, push, replace, pop, muteOnStartup, setMuteOnStartup, toggleMute, volume, setVolume, muted, setMuted, theater, setTheater, fs, setFs, clean, setClean, strictSecurity, strictSecurityReady, securityPending, setStrictSecurity, error, sourceErrors, setSourceErrors };
 }
 const Context = createContext<ReturnType<typeof useApplication>>(null!);
 export const useStore = () => useContext(Context);

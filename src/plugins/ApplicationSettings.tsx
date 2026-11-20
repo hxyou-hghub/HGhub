@@ -1,5 +1,5 @@
 import ProxySettings from "./ProxySettings";
-import { IBack, IChevR, IGrid, IMoon, ISun, IVolMute, IPlayF, IRefresh, IHeart, IInfo, IHome } from "../icons";
+import { IBack, IChevR, IGrid, IMoon, ISun, IPlayF, IRefresh, IHeart, IInfo, IHome } from "../icons";
 import type { ReactNode } from "react";
 import { Toggle } from "../components/ui";
 import { useEffect, useRef, useState } from "react";
@@ -53,7 +53,6 @@ export default function ApplicationSettings({ onBack }: { onBack: () => void }) 
         </Setting>
       </Section>
       <Section title="播放">
-        <Setting icon={<IVolMute size={16}/>} title="启动时静音" description="每次启动默认静音，下次启动生效"><Toggle label="启动时静音" on={app.muteOnStartup} onChange={app.setMuteOnStartup}/></Setting>
         <Setting icon={<IPlayF size={16}/>} title="自动播放下一条" description="播完后继续下一集或下一部作品"><Toggle label="自动播放下一条" on={host.prefs.autoNext} onChange={autoNext=>host.setPrefs({autoNext})}/></Setting>
         <Setting icon={<IRefresh size={16}/>} title="播放失败后尝试其他播放流" description="尝试当前来源可用的其他播放流"><Toggle label="播放失败后尝试其他播放流" on={host.prefs.playbackFallback} onChange={playbackFallback=>host.setPrefs({playbackFallback})}/></Setting>
       </Section>

@@ -4,7 +4,7 @@ import { useStore, type Tab } from "../store";
 import { APP_VERSION } from "../environment";
 import {
   IPin, IClose, IGrid, IGridF, IHome, IHomeF, IMinus, IMoon, IRestore, ISearch, ISettings, ISidebar, ICpu,
-  ISquare, ISun, IUser, IUserF, Logo,
+  ISquare, ISun, IUser, IUserF, IVol, IVolMute, Logo,
 } from "../icons";
 
 const appWindow = () => getCurrentWindow();
@@ -25,7 +25,7 @@ export function PlaybackWindowActions() {
 }
 
 export function DesktopTitleBar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
-  const { theme, setTheme, platform } = useStore();
+  const { theme, setTheme, platform, muteOnStartup, toggleMute } = useStore();
   const [maxed, setMaxed] = useState(false);
   /* macOS 原生全屏：红绿灯被系统隐藏，标题栏左侧 84px 让位要收回（见 index.css） */
   const [nativeFs, setNativeFs] = useState(false);
@@ -53,6 +53,9 @@ export function DesktopTitleBar({ collapsed, onToggle }: { collapsed: boolean; o
         <ISidebar size={17} strokeWidth={1.7} />
       </button>
       <div className="win-drag-region" data-tauri-drag-region />
+      <button className="win-caption-tool" aria-label={muteOnStartup ? "取消全局静音" : "全局静音"} aria-pressed={muteOnStartup} onClick={toggleMute}>
+        {muteOnStartup ? <IVolMute size={17} strokeWidth={1.7} /> : <IVol size={17} strokeWidth={1.7} />}
+      </button>
       <button className="win-caption-tool" aria-label="切换外观" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
         {theme === "dark" ? <ISun size={17} strokeWidth={1.7} /> : <IMoon size={17} strokeWidth={1.7} />}
       </button>
