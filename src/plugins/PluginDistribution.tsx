@@ -6,6 +6,7 @@ import { usePluginRequests } from "./usePluginRequests";
 import { useHost } from "./HostContext";
 import { Tooltip, Modal } from "../components/ui";
 import { useStore } from "../store";
+import { IClose, IDownload, ILink, ICheck, IRefresh, IFileText, IInfo } from "../icons";
 
 interface ImportItem {
   key: string; id: string; name: string; description: string; version: string; source: string;
@@ -40,6 +41,74 @@ const newer = (next: string, current?: string) => {
   for (let i = 0; i < 3; i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
   return false;
 };
+
+function getItemDisplay(item: ImportItem) {
+  let title = item.name;
+  let subtitle = "";
+
+  if (item.name.startsWith("http://") || item.name.startsWith("https://")) {
+    try {
+      const u = new URL(item.name);
+      const segments = u.pathname.split("/").filter(Boolean);
+      title = segments.length > 0 ? segments[segments.length - 1] : u.hostname;
+      subtitle = item.name;
+    } catch {
+      title = item.name;
+    }
+  } else if (item.name.includes("/") || item.name.includes("\\")) {
+    const segments = item.name.split(/[/\\]/).filter(Boolean);
+    title = segments.length > 0 ? segments[segments.length - 1] : item.name;
+    subtitle = item.name;
+  } else {
+    title = item.name;
+    if (item.source && item.source !== item.name) {
+      subtitle = item.source;
+    } else if (item.id && item.id !== item.name) {
+      subtitle = item.id;
+    }
+  }
+
+  return { title, subtitle };
+}
+
+function Checkbox({
+  checked,
+  disabled,
+  onChange,
+  "aria-label": ariaLabel,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+  "aria-label"?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={e => {
+        e.stopPropagation();
+        if (!disabled) onChange(!checked);
+      }}
+      className={`w-4 h-4 rounded-[5px] flex items-center justify-center transition-all shrink-0 select-none ${
+        disabled
+          ? "border border-black/10 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.04] opacity-35 cursor-not-allowed"
+          : checked
+          ? "bg-primary border border-primary text-on-primary shadow-xs cursor-pointer"
+          : "border border-black/25 dark:border-white/30 bg-s1 hover:border-primary cursor-pointer"
+      }`}
+    >
+      {checked && (
+        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+          <path d="M1.5 4L3.8 6.3L8.5 1.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </button>
+  );
+}
 
 const DRAFT_KEYS = {
   mode: "hpp.import.mode",
@@ -420,91 +489,224 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
 
     {error && <div className="hpp-error" role="alert">{error}</div>}
 
-    {preview && (
-      <Modal open={true} onClose={() => replacePreview(null)} width={540}>
-        <section className="hpp-modal-box" aria-label="插件导入预览">
-          <div className="hpp-modal-header">
-            <h3 className="min-w-0 flex-1 truncate">{preview.name}（{preview.items.length} 个条目）</h3>
-            <button className="hpp-modal-close" onClick={() => replacePreview(null)} aria-label="关闭">✕</button>
-          </div>
-          <div className="hpp-modal-body">
-            {preview.subscriptions?.map(subscription => (
-              <button key={subscription.location} className="mb-2 text-xs" disabled={busy || host.updates.subscriptions.some(s => s.location === subscription.location)} onClick={() => void run(async () => {
-                await request("subscriptions.save", { token: preview.token, location: subscription.location });
-                await host.refreshUpdates();
-              })}>
-                {host.updates.subscriptions.some(s => s.location === subscription.location) ? "已保存订阅" : `保存订阅 · ${subscription.name}`}
+    {preview && (() => {
+      const installableItems = preview.items.filter(i => !i.error);
+      const installableCount = installableItems.length;
+      const allInstallableSelected = installableCount > 0 && installableItems.every(i => selected.includes(i.key));
+
+      return (
+        <Modal open={true} onClose={() => replacePreview(null)} width={540}>
+          <div className="flex flex-col w-full text-on" aria-label="插件导入预览">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-black/[0.06] dark:border-white/[0.08]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <h3 className="text-base font-semibold text-on tracking-tight">{preview.name}</h3>
+                <span className="text-[11.5px] px-2 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-mut font-normal shrink-0">
+                  {preview.items.length} 个条目
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => replacePreview(null)}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-mut hover:text-on hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="关闭"
+              >
+                <IClose size={14} />
               </button>
-            ))}
-            <label className="hpp-check mb-2">
-              <input type="checkbox" disabled={busy} checked={preview.items.some(i => !i.error) && preview.items.filter(i => !i.error).every(i => selected.includes(i.key))} onChange={e => setSelected(e.target.checked ? preview.items.filter(i => !i.error).map(i => i.key) : [])} />
-              全选可安装条目
-            </label>
-            <div className="hpp-distribution-items">
-              {preview.items.map(item => (
-                <label key={item.key} className="hpp-distribution-item">
-                  <input type="checkbox" aria-label={`选择 ${item.name}`} checked={selected.includes(item.key)} disabled={busy || !!item.error} onChange={e => setSelected(old => e.target.checked ? [...old, item.key] : old.filter(k => k !== item.key))} />
-                  <span>
-                    <strong>{item.name}</strong>
-                    <small>{item.id}</small>
-                    {item.description && <small>{item.description}</small>}
-                    <small>{item.source}</small>
-                    {item.error && <small className="hpp-danger">{item.error.message}</small>}
-                  </span>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-4 flex flex-col gap-3.5 overflow-y-auto max-h-[62vh]">
+              {preview.subscriptions?.map(subscription => {
+                const isSaved = host.updates.subscriptions.some(s => s.location === subscription.location);
+                return (
+                  <div key={subscription.location} className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-black/[0.025] dark:bg-white/[0.03] border border-black/[0.05] dark:border-white/[0.06]">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <ILink size={13} className="text-primary shrink-0" />
+                      <span className="truncate text-xs text-mut">
+                        订阅源：<strong className="text-on font-medium">{subscription.name}</strong>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline font-medium shrink-0 disabled:opacity-50 cursor-pointer"
+                      disabled={busy || isSaved}
+                      onClick={() => void run(async () => {
+                        await request("subscriptions.save", { token: preview.token, location: subscription.location });
+                        await host.refreshUpdates();
+                      })}
+                    >
+                      {isSaved ? "已保存" : "保存订阅"}
+                    </button>
+                  </div>
+                );
+              })}
+
+              {/* Toolbar */}
+              <div className="flex items-center justify-between px-0.5 text-xs text-mut">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none text-on font-medium hover:opacity-85">
+                  <Checkbox
+                    checked={allInstallableSelected}
+                    disabled={busy || installableCount === 0}
+                    onChange={checked => setSelected(checked ? installableItems.map(i => i.key) : [])}
+                    aria-label="全选可安装条目"
+                  />
+                  <span>全选可安装条目</span>
                 </label>
-              ))}
+                <span className="text-[11.5px] text-mut">
+                  {installableCount > 0 ? `已选 ${selected.length} / ${installableCount}` : "暂无可安装条目"}
+                </span>
+              </div>
+
+              {/* Grouped Card Container */}
+              <div className="rounded-xl border border-black/[0.07] dark:border-white/[0.08] bg-black/[0.015] dark:bg-white/[0.02] overflow-hidden divide-y divide-black/[0.06] dark:divide-white/[0.06]">
+                {preview.items.map(item => {
+                  const isSelected = selected.includes(item.key);
+                  const hasError = !!item.error;
+                  const { title: itemTitle, subtitle: itemSubtitle } = getItemDisplay(item);
+
+                  return (
+                    <div
+                      key={item.key}
+                      className={`flex items-start gap-3.5 px-4 py-3.5 transition-colors select-none ${
+                        hasError ? "bg-red-500/[0.015]" : "hover:bg-black/[0.025] dark:hover:bg-white/[0.035] cursor-pointer"
+                      } ${isSelected ? "bg-primary/[0.05]" : ""}`}
+                      onClick={() => {
+                        if (!hasError && !busy) {
+                          setSelected(old => isSelected ? old.filter(k => k !== item.key) : [...old, item.key]);
+                        }
+                      }}
+                    >
+                      <div className="pt-0.5 shrink-0">
+                        <Checkbox
+                          checked={isSelected}
+                          disabled={busy || hasError}
+                          onChange={checked => setSelected(old => checked ? [...old, item.key] : old.filter(k => k !== item.key))}
+                          aria-label={`选择 ${itemTitle}`}
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-semibold text-[13.5px] text-on tracking-tight truncate">
+                              {itemTitle}
+                            </span>
+                            {item.version && (
+                              <span className="text-[10.5px] px-1.5 py-0.5 rounded font-mono bg-black/[0.04] dark:bg-white/[0.06] text-mut shrink-0">
+                                v{item.version}
+                              </span>
+                            )}
+                          </div>
+
+                          {hasError ? (
+                            <span className="text-[11px] font-medium text-red-500 dark:text-red-400 bg-red-500/10 dark:bg-red-500/15 px-2 py-0.5 rounded-full shrink-0">
+                              不可用
+                            </span>
+                          ) : item.installedVersion ? (
+                            <span className="text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full shrink-0">
+                              有更新
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
+                              可安装
+                            </span>
+                          )}
+                        </div>
+
+                        {itemSubtitle && (
+                          <p className="text-[11.5px] text-mut/80 font-mono mt-0.5 truncate" title={itemSubtitle}>
+                            {itemSubtitle}
+                          </p>
+                        )}
+
+                        {item.description && (
+                          <p className="text-xs text-mut mt-1 line-clamp-2 leading-relaxed">
+                            {item.description}
+                          </p>
+                        )}
+
+                        {item.error && (
+                          <div className="flex items-start gap-1.5 mt-2 text-xs text-red-500 dark:text-red-400 leading-relaxed">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 mt-1.5" />
+                            <span className="break-all">{item.error.message}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-center gap-3 px-6 py-3.5 border-t border-black/[0.06] dark:border-white/[0.08] bg-black/[0.015] dark:bg-white/[0.015]">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => replacePreview(null)}
+                className="px-5 py-2 text-xs font-medium text-mut hover:text-on rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                关闭
+              </button>
+              <button
+                type="button"
+                className="primary px-6 py-2 text-xs font-semibold rounded-lg bg-primary text-on-primary hover:opacity-90 active:scale-98 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xs cursor-pointer flex items-center gap-1.5"
+                disabled={busy || !selected.length}
+                onClick={() => void apply()}
+              >
+                <span>{preview.updatesOnly ? "安装所选更新" : "导入所选插件"}</span>
+                {selected.length > 0 && <span className="opacity-90 font-mono">({selected.length})</span>}
+              </button>
             </div>
           </div>
-          <div className="hpp-modal-footer">
-            <button disabled={busy} onClick={() => replacePreview(null)}>关闭</button>
-            <button className="primary" disabled={busy || !selected.length} onClick={() => void apply()}>
-              {preview.updatesOnly ? "安装所选更新" : "导入所选插件"}（{selected.length}）
-            </button>
-          </div>
-        </section>
-      </Modal>
-    )}
+        </Modal>
+      );
+    })()}
 
     {codePreview && (
-      <Modal open={true} onClose={() => setCodePreview(null)} width={500}>
+      <Modal open={true} onClose={() => setCodePreview(null)} width={480}>
         <div className="hpp-modal-box" aria-label="插件代码详情">
           <div className="hpp-modal-header">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <h3 className="truncate">插件代码详情</h3>
-              {codePreview.name && <span className="text-xs opacity-60 truncate">（{codePreview.name}）</span>}
+              <h3 className="text-sm font-semibold text-on truncate">代码详情</h3>
+              {codePreview.name && <span className="text-xs text-mut truncate">（{codePreview.name}）</span>}
             </div>
-            <button className="hpp-modal-close" onClick={() => setCodePreview(null)} aria-label="关闭">✕</button>
+            <button className="hpp-modal-close" onClick={() => setCodePreview(null)} aria-label="关闭">
+              <IClose size={14} />
+            </button>
           </div>
           <div className="hpp-modal-body">
             <div className="hpp-modal-item">
               <span className="hpp-modal-item-name">插件名称</span>
-              <span className="font-semibold">{codePreview.name || "未声明"}</span>
+              <span className="font-medium text-xs">{codePreview.name || "未声明"}</span>
             </div>
             <div className="hpp-modal-item">
               <span className="hpp-modal-item-name">插件 ID</span>
-              <code>{codePreview.id || "未声明"}</code>
+              <code className="text-xs">{codePreview.id || "未声明"}</code>
             </div>
             <div className="hpp-modal-item">
               <span className="hpp-modal-item-name">版本</span>
-              <span>{codePreview.version || "未声明"}</span>
+              <span className="text-xs">{codePreview.version || "未声明"}</span>
             </div>
             {codePreview.description && (
               <div className="hpp-modal-item">
                 <span className="hpp-modal-item-name">描述</span>
-                <span className="text-xs opacity-75">{codePreview.description}</span>
+                <span className="text-xs text-mut line-clamp-2">{codePreview.description}</span>
               </div>
             )}
             <div className="hpp-modal-item">
-              <span className="hpp-modal-item-name">代码规模</span>
-              <span className="text-xs opacity-60">{codePreview.lines} 行 · {codePreview.chars} 字符</span>
+              <span className="hpp-modal-item-name">规模</span>
+              <span className="text-xs text-mut">{codePreview.lines} 行 · {codePreview.chars} 字符</span>
             </div>
             {!codePreview.id && (
-              <p className="hpp-danger text-xs mt-2">提示：未在代码中识别到 export const meta.id，导入可能失败。</p>
+              <p className="text-xs text-red-500 mt-1">提示：未在代码中识别到 export const meta.id，导入可能失败。</p>
             )}
           </div>
-          <div className="hpp-modal-footer">
-            <button disabled={busy} onClick={() => setCodePreview(null)}>关闭</button>
+          <div className="hpp-modal-footer justify-center">
+            <button type="button" disabled={busy} onClick={() => setCodePreview(null)}>取消</button>
             <button
+              type="button"
               className="primary"
               disabled={busy || !code.trim()}
               onClick={() => {
@@ -520,14 +722,16 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
     )}
 
     {!!report.length && (
-      <Modal open={true} onClose={() => setReport([])} width={500}>
+      <Modal open={true} onClose={() => setReport([])} width={480}>
         <div className="hpp-modal-box" aria-label="插件导入结果">
           <div className="hpp-modal-header">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <h3 className="truncate">导入结果</h3>
-              <span className="text-xs opacity-50 font-normal shrink-0">（{report.length} 项）</span>
+              <h3 className="text-sm font-semibold text-on truncate">导入结果</h3>
+              <span className="text-xs text-mut font-normal">（{report.length}）</span>
             </div>
-            <button className="hpp-modal-close" onClick={() => setReport([])} aria-label="关闭">✕</button>
+            <button className="hpp-modal-close" onClick={() => setReport([])} aria-label="关闭">
+              <IClose size={14} />
+            </button>
           </div>
           <div className="hpp-modal-body">
             {report.map(item => {
@@ -543,9 +747,9 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
               );
             })}
           </div>
-          <div className="hpp-modal-footer">
-            <button className="primary" onClick={() => setReport([])}>
-              确定
+          <div className="hpp-modal-footer justify-center">
+            <button type="button" className="primary" onClick={() => setReport([])}>
+              完成
             </button>
           </div>
         </div>
@@ -553,21 +757,23 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
     )}
 
     {!!updates.length && (
-      <Modal open={true} onClose={() => setUpdates([])} width={500}>
+      <Modal open={true} onClose={() => setUpdates([])} width={480}>
         <div className="hpp-modal-box" aria-label="插件更新检查结果">
           <div className="hpp-modal-header">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <h3 className="truncate">更新检查</h3>
-              <span className="text-xs opacity-50 font-normal shrink-0">（{updates.length} 项）</span>
+              <h3 className="text-sm font-semibold text-on truncate">更新检查</h3>
+              <span className="text-xs text-mut font-normal">（{updates.length}）</span>
             </div>
-            <button className="hpp-modal-close" onClick={() => setUpdates([])} aria-label="关闭">✕</button>
+            <button className="hpp-modal-close" onClick={() => setUpdates([])} aria-label="关闭">
+              <IClose size={14} />
+            </button>
           </div>
           <div className="hpp-modal-body">
             {updates.map((item, i) => {
               const pluginName = plugins.find(p => p.meta.id === item.id)?.meta.name || item.id;
               const isFail = item.status === "failed";
               const isAvail = item.status === "available";
-              const msg = item.error?.message || (isAvail ? "有可用更新，可选择安装" : item.status === "noSource" ? "未配置更新地址" : "已是最新状态");
+              const msg = item.error?.message || (isAvail ? "有可用更新" : item.status === "noSource" ? "未配置更新地址" : "已是最新");
               return (
                 <div key={item.id + i} className="hpp-modal-item">
                   <span className="hpp-modal-item-name">{pluginName}</span>
@@ -578,9 +784,9 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
               );
             })}
           </div>
-          <div className="hpp-modal-footer">
-            <button className="primary" onClick={() => setUpdates([])}>
-              确定
+          <div className="hpp-modal-footer justify-center">
+            <button type="button" className="primary" onClick={() => setUpdates([])}>
+              完成
             </button>
           </div>
         </div>
