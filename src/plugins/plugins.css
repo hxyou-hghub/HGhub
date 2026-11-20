@@ -93,9 +93,16 @@
 .hpp-status.ready{color:var(--p-success);background:#22c55e14}
 .hpp-status.failed,.hpp-status.incompatible{color:var(--p-danger);background:#ef444414}
 .hpp-status.disabled{color:var(--p-mut);background:#8881}
-.hpp-error{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;padding:9px 13px;background:rgba(239,68,68,.1);color:var(--p-danger);border:1px solid rgba(239,68,68,.22);border-radius:8px;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
-.hpp-error-dismiss{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;padding:2px 6px;border-radius:4px;font-size:11px;transition:opacity .15s}
+.hpp-error{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:12px 0 16px;padding:11px 16px;background:linear-gradient(135deg,rgba(239,68,68,.12) 0%,rgba(239,68,68,.05) 100%);color:var(--p-on);border:1px solid rgba(239,68,68,.22);border-left:3.5px solid var(--p-danger);border-radius:var(--r-md,10px);box-shadow:0 2px 10px rgba(0,0,0,.12);font-size:12.5px;line-height:1.5;overflow-wrap:anywhere;backdrop-filter:blur(8px)}
+html.theme-light .hpp-error{background:linear-gradient(135deg,rgba(239,68,68,.08) 0%,rgba(239,68,68,.03) 100%);color:#222;border-color:rgba(239,68,68,.18);box-shadow:0 2px 8px rgba(239,68,68,.06)}
+.hpp-error-dismiss{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;padding:3px 7px;border-radius:4px;font-size:11px;transition:opacity .15s,background .15s}
 .hpp-error-dismiss:hover{opacity:1;background:rgba(239,68,68,.15)}
+.hpp-page button.hpp-error-retry,
+.hpp-error-retry{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:5px 13px;font-size:12px;font-weight:600;line-height:1.3;color:var(--p-danger);background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.32);border-radius:var(--r-sm,6px);cursor:pointer;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.06);transition:all .18s cubic-bezier(.2,0,0,1)}
+.hpp-page button.hpp-error-retry:hover,
+.hpp-error-retry:hover{background:var(--p-danger);color:var(--p-on-danger,#fff);border-color:var(--p-danger);box-shadow:0 2px 8px rgba(239,68,68,.35);transform:translateY(-1px)}
+.hpp-page button.hpp-error-retry:active,
+.hpp-error-retry:active{transform:scale(.96);box-shadow:none}
 .hpp-options{border-top:1px solid #8882;margin-top:20px;padding-top:18px}
 .hpp-setting{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .hpp-setting>label{min-width:150px}
@@ -117,7 +124,12 @@
 .hpp-poster small{position:absolute;right:7px;top:7px;font-size:10px;padding:3px 5px;background:#0009;color:white;border-radius:4px}
 .hpp-media-card strong{display:block;font-size:13px;margin-top:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hpp-media-card p{font-size:10px;opacity:.4;margin-top:4px}
-.hpp-more{display:flex!important;margin:30px auto}
+.hpp-page button.hpp-more,
+.hpp-more{display:inline-flex!important;align-items:center;justify-content:center;margin:32px auto;padding:8px 22px;font-size:12px;font-weight:500;color:var(--p-dim);background:var(--p-s2);border:1px solid rgba(128,128,128,.16);border-radius:var(--r-ctl,999px);transition:all .18s ease}
+.hpp-page button.hpp-more:not(:disabled):hover,
+.hpp-more:not(:disabled):hover{background:var(--p-s3);color:var(--p-on);border-color:rgba(128,128,128,.32)}
+.hpp-page button.hpp-more:disabled,
+.hpp-more:disabled{opacity:.55;background:transparent;border-color:transparent;cursor:default}
 .hpp-empty{flex:1;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;padding:30px}
 .hpp-empty>svg{opacity:.25}
 .hpp-empty h2{font-size:21px}

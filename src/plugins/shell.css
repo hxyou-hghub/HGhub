@@ -18,34 +18,38 @@
 .hpp-provider-tabs button[aria-pressed=true]::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:3px;background:var(--p-primary)}
 .hpp-provider-tabs small{color:var(--p-mut);font-size:10px;background:var(--p-s2);padding:1px 5px;border-radius:5px}
 .hpp-category-page .hpp-content{padding-top:18px}
-.hpp-content-entries{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.hpp-content-entries{display:flex;gap:8px;flex-wrap:nowrap;align-items:center;overflow-x:auto;scrollbar-width:none;min-width:0;margin-bottom:16px}
 .hpp-content-entries:empty{display:none}
-.hpp-content-entries button{font-size:11px;color:var(--p-mut)}
-.hpp-category-preview{margin:0 0 26px}
-.hpp-category-preview>header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.hpp-category-preview>header>div{flex:1;min-width:0}
-.hpp-category-icon{height:36px;width:36px;border-radius:7px;background:var(--p-s2);display:grid;place-items:center;color:var(--p-on)}
-.hpp-category-preview h2{font-size:16px;font-weight:700;letter-spacing:0}
-.hpp-category-preview header p{font-size:11px;color:var(--p-mut);margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.hpp-category-preview header button{background:transparent;font-size:12px;color:var(--p-mut)}
-.hpp-preview-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:5px;scroll-snap-type:x proximity}
-.hpp-preview-strip .hpp-cards{display:contents}
-.hpp-preview-strip .hpp-media-card{flex:0 0 126px;scroll-snap-align:start}
+.hpp-content-entries button{flex-shrink:0;font-size:11px;color:var(--p-mut)}
+.hpp-section-row .hpp-content-entries{margin-bottom:0}
 .hpp-poster{border-radius:6px;aspect-ratio:3/4;background:linear-gradient(145deg,var(--p-s3),var(--p-s1))}
 .hpp-poster>span{font-size:24px;letter-spacing:1px}
 .hpp-media-card strong{font-size:12px;font-weight:550;margin-top:7px;line-height:1.4}
 .hpp-media-card p{font-size:10px;line-height:1.5;margin-top:3px}
 .hpp-media-card:hover .hpp-poster img{transform:scale(1.035)}
 .hpp-poster img{transition:transform .2s ease}
-.hpp-page button.hpp-view-all{align-self:flex-start;flex:0 0 76px;height:168px;display:flex;flex-direction:column;gap:9px;border-radius:6px;font-size:11px;color:var(--p-mut);background:var(--p-s2)}
-.hpp-view-all>span{display:grid;place-items:center;border-radius:50%;width:34px;height:34px;background:var(--p-s3)}
-.hpp-preview-skeleton{display:flex;gap:10px;overflow:hidden}
-.hpp-preview-skeleton>span{flex:0 0 126px;height:168px;border-radius:6px}
-.hpp-end-note{text-align:center;font-size:11px;color:var(--p-dim);padding:6px 0 15px}
-.hpp-category-tree{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
-.hpp-category-tree>div{display:flex;gap:5px;flex-wrap:wrap}
-.hpp-category-tree button{font-size:12px}
 .hpp-cards{grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:22px 14px}
+/* Category: two-level tree navigation, then one lazy masonry page. */
+.hpp-section-row{display:flex;align-items:stretch;gap:16px;border-bottom:1px solid var(--surface-border)}
+.hpp-section-row .hpp-section-tabs{flex:1;min-width:0;border-bottom:0}
+.hpp-section-tabs,.hpp-category-tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.hpp-section-tabs{gap:22px}
+.hpp-page .hpp-section-tabs button{position:relative;flex-shrink:0;padding:11px 2px 13px;background:none;border-radius:0;color:var(--p-mut);font-size:15px;font-weight:600;white-space:nowrap}
+.hpp-section-tabs button:hover{color:var(--p-on)}
+.hpp-section-tabs button[aria-pressed=true]{color:var(--p-on)}
+.hpp-section-tabs button[aria-pressed=true]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px;background:var(--p-primary)}
+.hpp-category-tabs{padding:12px 0 6px}
+.hpp-page .hpp-category-tabs button{flex-shrink:0;padding:7px 15px;border-radius:var(--r-ctl);background:var(--p-s2);font-size:12px;color:var(--p-mut);white-space:nowrap}
+.hpp-category-tabs button[aria-pressed=true]{background:var(--p-tint);color:var(--p-primary);font-weight:650}
+.hpp-category-tabs:empty{display:none}
+.hpp-sort{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--p-mut);margin:6px 0 12px}
+.hpp-waterfall{display:flex;align-items:flex-start;gap:14px;margin-top:4px}
+.hpp-waterfall-column{display:flex;flex-direction:column;gap:20px 14px;flex:1;min-width:0}
+.hpp-page button.hpp-waterfall-card{display:block;width:100%;padding:0;text-align:left;background:transparent;min-width:0}
+.hpp-page button.hpp-waterfall-card .hpp-poster{width:100%}
+.hpp-page button.hpp-waterfall-card strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;font-size:12.5px;line-height:1.45;margin-top:8px}
+.hpp-waterfall-desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:11px;line-height:1.55;color:var(--p-mut);margin-top:5px}
+.hpp-waterfall-tags{display:block;font-size:10.5px;color:var(--p-dim);margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hpp-empty{min-height:360px;gap:13px}
 .hpp-empty>svg{opacity:.6;color:var(--p-primary);margin-bottom:5px}
 .hpp-empty h2{font-size:20px;letter-spacing:0}
@@ -187,8 +191,8 @@
   .win-sidebar{width:176px}
   .hpp-header{padding:16px 16px 12px;min-height:66px}.hpp-header h1{font-size:23px}.hpp-content{padding:10px 16px 28px}
   .hpp-provider-tabs{padding:0 16px;gap:22px}.hpp-category-page .hpp-content{padding-top:18px}
-  .hpp-preview-strip .hpp-media-card{flex-basis:108px}.hpp-page button.hpp-view-all{height:144px;flex-basis:64px}
-  .hpp-preview-skeleton>span{flex-basis:108px;height:144px}.hpp-category-preview h2{font-size:15px}
+  .hpp-page .hpp-section-tabs button{font-size:14px;padding:10px 2px 12px}
+  .hpp-waterfall{gap:10px}.hpp-waterfall-column{gap:16px 10px}
   .hpp-cards{grid-template-columns:repeat(auto-fill,minmax(106px,1fr));gap:20px 10px}.hpp-local-library{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:20px 12px}
   .hpp-plugins-page .hpp-content{padding-top:6px}.hpp-plugin{padding:15px}.hpp-plugin-footer{gap:12px}.hpp-plugin-footer>span{display:none}.hpp-plugin-footer>div{gap:7px}.hpp-plugin-footer button{min-height:35px}
   .hpp-import{padding:18px}.hpp-import h2{font-size:20px}.hpp-distribution-buttons{gap:8px}.hpp-distribution-location{flex-direction:column}.hpp-distribution-location button{min-height:38px}

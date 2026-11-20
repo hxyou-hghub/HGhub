@@ -79,21 +79,10 @@ export const IAmbient = S(<><circle cx="12" cy="12" r="3.5" /><path d="M12 2v2M1
 export const ISun = S(<><circle cx="12" cy="12" r="3.4" /><path d="M12 2.8v2.2M12 19v2.2M2.8 12h2.2M19 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6" /></>);
 export const IMoon = S(<path d="M16.5 13.2A6.6 6.6 0 0 1 10.2 5 6.8 6.8 0 1 0 16.5 13.2Z" />);
 
-/* ——— 分类图标 ——— */
-export const IClapper = S(<><path d="M4 9.5h16v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5Z" /><path d="m4.4 9.5-1-3.6 15.4-4.2 1 3.6Z" /><path d="m8.2 8.4 2-4.2M12.6 7.2l2-4.2" /></>);
-export const IStarsF = S(<><path d="M9.5 3.5c.5 2.9 1.3 4.6 2.5 5.8 1.2 1.2 2.9 2 5.8 2.5-2.9.5-4.6 1.3-5.8 2.5-1.2 1.2-2 2.9-2.5 5.8-.5-2.9-1.3-4.6-2.5-5.8-1.2-1.2-2.9-2-5.8-2.5 2.9-.5 4.6-1.3 5.8-2.5 1.2-1.2 2-2.9 2.5-5.8Z" /><path d="M18.5 2c.2 1.2.6 2 1.1 2.5s1.3.9 2.5 1.1c-1.2.2-2 .6-2.5 1.1s-.9 1.3-1.1 2.5c-.2-1.2-.6-2-1.1-2.5s-1.3-.9-2.5-1.1c1.2-.2 2-.6 2.5-1.1s.9-1.3 1.1-2.5Z" /><path d="M18.5 14c.2 1 .5 1.6.9 2s1 .7 2 .9c-1 .2-1.6.5-2 .9s-.7 1-.9 2c-.2-1-.5-1.6-.9-2s-1-.7-2-.9c1-.2 1.6-.5 2-.9s.7-1 .9-2Z" /></>, true);
-export const IGamepad = S(<><path d="M7.2 7.5h9.6a5.2 5.2 0 0 1 5.1 6.2l-.7 3.6a2.4 2.4 0 0 1-4.3.9l-1.6-2.2H8.7l-1.6 2.2a2.4 2.4 0 0 1-4.3-.9l-.7-3.6a5.2 5.2 0 0 1 5.1-6.2Z" /><path d="M8 10.8v3.2M6.4 12.4h3.2" /><circle cx="15.3" cy="11.4" r="1" fill="currentColor" stroke="none" /><circle cx="17.6" cy="13.6" r="1" fill="currentColor" stroke="none" /></>);
-export const IHeadphones = S(<><path d="M4 14.5V12a8 8 0 0 1 16 0v2.5" /><rect x="3" y="13.5" width="4.6" height="7" rx="2" /><rect x="16.4" y="13.5" width="4.6" height="7" rx="2" /></>);
-export const IBowl = S(<><path d="M3.5 11.5h17a8.5 8.5 0 0 1-17 0Z" /><path d="M8.5 20.5h7" /><path d="M9.3 8c0-1.6 1.4-1.6 1.4-3.2M13.3 8c0-1.6 1.4-1.6 1.4-3.2" /></>);
-export const ICompass = S(<><circle cx="12" cy="12" r="8.5" /><path d="m15.6 8.4-2.1 5.1-5.1 2.1 2.1-5.1Z" fill="currentColor" stroke="none" /></>);
-export const IPawF = S(<><ellipse cx="6.6" cy="9.6" rx="1.9" ry="2.5" /><ellipse cx="17.4" cy="9.6" rx="1.9" ry="2.5" /><ellipse cx="10" cy="5.6" rx="1.8" ry="2.4" /><ellipse cx="14" cy="5.6" rx="1.8" ry="2.4" /><path d="M12 11.2c3.1 0 5.6 2.6 5.6 5.3 0 1.8-1.3 3-3 3-1 0-1.8-.5-2.6-.5s-1.6.5-2.6.5c-1.7 0-3-1.2-3-3 0-2.7 2.5-5.3 5.6-5.3Z" /></>, true);
+/* ——— 其它界面图标 ——— */
 export const ICpu = S(<><rect x="6" y="6" width="12" height="12" rx="2" /><rect x="9.5" y="9.5" width="5" height="5" rx="1" /><path d="M9 3v3M12 3v3M15 3v3M9 18v3M12 18v3M15 18v3M3 9h3M3 12h3M3 15h3M18 9h3M18 12h3M18 15h3" /></>);
 export const IPhone = S(<><rect x="6" y="2.5" width="12" height="19" rx="2.6" /><path d="M10.5 18.5h3" /></>);
 export const IMouse = S(<><rect x="6.5" y="3" width="11" height="18" rx="5.5" /><path d="M12 7v3.5" /></>);
-
-export const CAT_ICONS: Record<string, ReturnType<typeof S>> = {
-  短剧: IClapper, 漫剧: IStarsF, 游戏: IGamepad, 音乐: IHeadphones, 美食: IBowl, 旅行: ICompass, 萌宠: IPawF, 科技: ICpu,
-};
 
 export function Logo({ size = 28, className = "" }: { size?: number; className?: string }) {
   return (

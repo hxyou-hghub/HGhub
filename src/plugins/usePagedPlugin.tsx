@@ -50,5 +50,5 @@ export function PageLoadMore({ next, busy, error, more, label = "加载更多", 
     }, { root: node.closest(".hpp-scroll"), rootMargin: "0px 0px 120px 0px" });
     observer.observe(node); return () => observer.disconnect();
   }, [next, busy, error, auto]);
-  return <><div ref={sentinel} className="hpp-page-sentinel" aria-hidden="true"/><button className="hpp-more" disabled={busy || !next} onClick={more}>{busy ? "正在加载…" : next ? label : "没有更多内容"}</button></>;
+  return <><div ref={sentinel} className="hpp-page-sentinel" aria-hidden="true"/><button className="hpp-more" disabled={busy || (!next && !error)} onClick={more}>{busy ? "正在加载…" : error ? "加载失败，点击重试" : next ? label : "没有更多内容"}</button></>;
 }

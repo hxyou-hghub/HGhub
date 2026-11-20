@@ -4,7 +4,7 @@ export async function selectCategorySource(page, name) {
 }
 export async function openRecommendations(page, name) {
   await selectCategorySource(page, name);
-  await page.getByRole("button", { name: `推荐分区 · ${name}`, exact: true }).click();
+  await page.getByRole("button", { name: "推荐更多", exact: true }).click();
 }
 export const installedTab = async (page) => {
   const btn = page.getByRole("navigation", { name: "插件中心分栏" }).getByRole("button", { name: /^已安装/ });

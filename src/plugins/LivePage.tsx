@@ -43,5 +43,5 @@ function Programmes({ plugin, channelId }: { plugin: InstalledPlugin; channelId:
   };
   return <section><button aria-expanded={open} onClick={() => {
     setOpen(v => !v); if (!open && !rows && !busy) void load();
-  }}>节目单</button>{open && <><Notice error={error}/>{busy && <p role="status">正在读取节目单…</p>}{error && <button disabled={busy} onClick={() => void load()}>重试节目单</button>}{rows?.map((r, i) => <article className="hpp-programme" key={i}><time>{new Date(r.startAt).toLocaleTimeString()} – {new Date(r.endAt).toLocaleTimeString()}</time><strong>{r.title}</strong><p>{r.description}</p></article>)}{rows && !rows.length && <p>暂无节目单</p>}</>}</section>;
+  }}>节目单</button>{open && <><Notice error={error} retry={error ? () => void load() : undefined} retryLabel="重试节目单"/>{busy && <p role="status">正在读取节目单…</p>}{rows?.map((r, i) => <article className="hpp-programme" key={i}><time>{new Date(r.startAt).toLocaleTimeString()} – {new Date(r.endAt).toLocaleTimeString()}</time><strong>{r.title}</strong><p>{r.description}</p></article>)}{rows && !rows.length && <p>暂无节目单</p>}</>}</section>;
 }

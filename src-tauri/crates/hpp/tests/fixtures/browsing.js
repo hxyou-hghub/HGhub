@@ -24,7 +24,16 @@ export default function(hg) {
       listSection(args) { return page("home.listSection", args, "分区"); },
     },
     catalog: {
-      async getCategories() { await remember("catalog.getCategories", {}); return [{ id: "short", label: "分页短剧", filters: [{ id: "year", label: "年份", options: [{ id: "2026", label: "2026" }] }], sorts: [{ id: "slow", label: "慢速排序" }, { id: "fast", label: "快速排序" }] }]; },
+      async getCategories() {
+        await remember("catalog.getCategories", {});
+        return [
+          { id: "short", label: "分页短剧", children: [
+            { id: "short-hot", label: "热门", filters: [{ id: "year", label: "年份", options: [{ id: "2026", label: "2026" }] }], sorts: [{ id: "slow", label: "慢速排序" }, { id: "fast", label: "快速排序" }] },
+            { id: "short-new", label: "上新" }
+          ]},
+          { id: "movie", label: "分页电影" }
+        ];
+      },
       async list(args) { if (args.sort === "slow") await new Promise(resolve => setTimeout(resolve, 600)); return page("catalog.list", args, "分类" + (args.sort || "默认") + (args.filters?.year?.[0] || "")); },
     },
     search: {

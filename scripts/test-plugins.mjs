@@ -237,7 +237,6 @@ try {
   assert(Object.values(libraryData.entries).some(e => e.favorite && e.tracking));
   await rail.getByRole("button", { name: "分类", exact: true }).click();
   await page.getByRole("button", { name: /分类中的虚构短剧/ }).waitFor();
-  await page.locator('.legacy-category-heading').first().click();
   await page.getByLabel("2026", { exact: true }).check();
   await page.getByRole("button", { name: /筛选后的虚构短剧/ }).waitFor();
   await page.getByLabel("分类排序", { exact: true }).selectOption("latest");

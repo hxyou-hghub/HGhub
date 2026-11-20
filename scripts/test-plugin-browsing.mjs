@@ -21,7 +21,15 @@ export async function testPluginBrowsing({ page, dispatch, root, output, report,
   assert(labels.includes(names[0]) && labels.includes(names[1]), "Both sources appear in the provider bar");
   await tabs.getByRole("button", { name: names[0], exact: true }).click();
   await page.getByRole("button", { name: /分页影院甲 · 分类默认 · 0/ }).waitFor();
-  await page.locator(".legacy-category-heading").first().click();
+  const sections = page.getByRole("navigation", { name: "分区", exact: true });
+  await sections.waitFor();
+  assert.equal(await sections.getByRole("button", { pressed: true }).count(), 1, "First section is active on open");
+  assert.equal(await page.getByRole("navigation", { name: "分类", exact: true }).getByRole("button", { pressed: true }).count(), 1, "First category of the section is active on open");
+  assert.equal(await page.locator(".hpp-waterfall").count(), 1, "Only the active category mounts a paged list");
+  assert(await page.locator(".hpp-waterfall-column").count() >= 2, "Items use waterfall columns");
+  const firstScreenLists = (await call(ids[0])).filter(c => c.method === "catalog.list");
+  assert(firstScreenLists.length > 0, "Active category loads on first screen");
+  assert(firstScreenLists.every(c => c.args.categoryId === "short-hot"), "Only the active category is fetched on first screen");
   const scrollToBottom = async () => { await page.locator(".hpp-media-card:visible, .legacy-search-poster:visible").first().waitFor(); await page.locator(".hpp-more:visible").last().scrollIntoViewIfNeeded(); };
   await scrollToBottom();
   await page.getByRole("alert").filter({ hasText: "虚构下一页失败" }).waitFor();
@@ -85,10 +93,10 @@ export async function testPluginBrowsing({ page, dispatch, root, output, report,
   assert.equal((await call(ids[0])).filter(c => c.method === "catalog.getCategories").length, metadataCalls, "Fulfilled category metadata is cached for the plugin revision");
   const revised = template.replaceAll("__PLUGIN_ID__", ids[0]).replaceAll("__PLUGIN_NAME__", names[0]).replace("分页短剧", "修订后的分类");
   await page.evaluate(async code => { const { pluginCommand } = await import("/src/plugins/client.ts"); await pluginCommand("import", { code }); }, revised);
-  await page.locator(".legacy-category-heading").filter({hasText:"修订后的分类"}).waitFor();
+  await sections.getByRole("button", { name: "修订后的分类", exact: true }).waitFor();
   assert((await call(ids[0])).filter(c => c.method === "catalog.getCategories").length > metadataCalls, "Same-version replacement invalidates category metadata");
   await rail.getByRole("button", { name: "首页", exact: true }).click();
   for (const id of ids) assert((await dispatch({ action: "remove", params: { id } })).ok);
   await page.reload();
-  report.passed.push("Category provider tabs, category preview/drilldown, recommendation refresh preserving existing content, viewport pagination with failed-cursor retry, ID deduplication, repeated-cursor termination, filter/query cancellation and independent multi-source search all use production UI");
+  report.passed.push("Category provider tabs, two-level section/category navigation, lazy single-category first screen, waterfall pagination with failed-cursor retry, ID deduplication, repeated-cursor termination, filter/query cancellation, category-tree revision cache and independent multi-source search all use production UI");
 }

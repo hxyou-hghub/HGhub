@@ -19,9 +19,9 @@ export function ArticleList({ plugin, onBack, open }: { plugin: InstalledPlugin;
     } catch (e) { setError(pluginError(e)); } finally { setBusy(false); }
   };
   useEffect(() => { void load(); }, []);
-  return <BrowseFrame title={`${plugin.meta.name} · 图文`} onBack={onBack}><Notice error={error}/>
+  return <BrowseFrame title={`${plugin.meta.name} · 图文`} onBack={onBack}><Notice error={error} retry={error ? () => void load() : undefined} retryLabel="重试图文"/>
     {page?.items.map(item => <ArticleCard key={item.id} cover={item.cover ? covers[coverIndex++] : undefined} item={item} open={() => open(item.id)}/>)}
-    {busy && <p role="status">正在读取图文…</p>}{error && <button onClick={() => void load()}>重试图文</button>}{page && !page.items.length && <p>暂无图文</p>}
+    {busy && <p role="status">正在读取图文…</p>}{page && !page.items.length && <p>暂无图文</p>}
     {page?.next && <button disabled={busy} onClick={() => void load(page.next || undefined)}>更多图文</button>}
   </BrowseFrame>;
 }
