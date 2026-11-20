@@ -43,10 +43,12 @@ pub fn cli_strict_override() -> Option<bool> {
 }
 
 static STRICT: Lazy<AtomicBool> =
-    Lazy::new(|| AtomicBool::new(cli_strict_override().unwrap_or(true)));
+    Lazy::new(|| AtomicBool::new(cli_strict_override().unwrap_or(!cfg!(debug_assertions))));
 static SECURITY_FILE: Lazy<RwLock<Option<PathBuf>>> = Lazy::new(|| RwLock::new(None));
 
-/// 当前是否启用严格安全模式（默认开启）。
+/// 当前是否启用严格安全模式。
+/// 默认值随构建形态变化：开发态（debug）默认关闭，生产态（release）默认开启，
+/// 对应“调试模式”在开发态默认开启、生产态默认关闭。
 pub fn strict_security() -> bool {
     STRICT.load(Ordering::Relaxed)
 }

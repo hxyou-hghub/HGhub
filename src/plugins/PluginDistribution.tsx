@@ -328,17 +328,16 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
           <button
             type="button"
             role="switch"
-            aria-checked={app.strictSecurity}
-            aria-label="严格安全模式"
-            title="严格安全模式：用于插件与媒体请求。自建服务需要访问局域网时可关闭。"
+            aria-checked={!app.strictSecurity}
+            aria-label="调试模式"
+            title="调试模式：开启后允许插件与媒体请求访问局域网与本机，便于调试自建服务。开发态默认开启，生产态默认关闭。"
             disabled={!app.strictSecurityReady || app.securityPending}
-            onClick={() => void app.setStrictSecurity(!app.strictSecurity).catch(e => setError(pluginError(e)))}
-            className={`hpp-switch-pill ${app.strictSecurity ? "is-on" : ""}`}
+            onClick={() => void app.setStrictSecurity(app.strictSecurity).catch(e => setError(pluginError(e)))}
+            className={`hpp-switch-pill ${!app.strictSecurity ? "is-on" : ""}`}
           >
             <span className="hpp-switch-knob" />
-            <span className="hpp-switch-label">严格安全</span>
+            <span className="hpp-switch-label">调试模式</span>
           </button>
-          <Tooltip text="严格安全模式：用于插件与媒体请求。自建服务需要访问局域网时可关闭。" />
 
           <button className="hpp-check-updates-btn" disabled={busy || !plugins.length} onClick={checkUpdates}>
             检查插件更新

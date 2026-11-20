@@ -1,17 +1,25 @@
 import ProxySettings from "./ProxySettings";
-import { IBack, IChevR, IGrid, IMoon, ISun, IVolMute, IPlayF, IRefresh, IHeart, IInfo } from "../icons";
+import { IBack, IChevR, IGrid, IMoon, ISun, IVolMute, IPlayF, IRefresh, IHeart, IInfo, IHome } from "../icons";
 import type { ReactNode } from "react";
 import { Toggle } from "../components/ui";
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { checkAppUpdate, type AppRelease } from "../appUpdates";
-import { useStore } from "../store";
+import { useStore, type StartPage } from "../store";
 import { APP_VERSION } from "../environment";
 import { useHost } from "./HostContext";
 import { BrowseFrame, Notice } from "./BrowsePages";
 import { pluginError } from "./client";
 import { usePluginRequests } from "./usePluginRequests";
 import type { UpdatePolicy } from "./updateClient";
+const START_TABS: { value: StartPage; label: string }[] = [
+  { value: "home", label: "首页" },
+  { value: "search", label: "搜索" },
+  { value: "category", label: "分类" },
+  { value: "profile", label: "我的" },
+  { value: "settings", label: "设置" },
+  { value: "plugins", label: "插件中心" },
+];
 export default function ApplicationSettings({ onBack }: { onBack: () => void }) {
   const app = useStore(), host = useHost(), [error, setError] = useState("");
   const request = usePluginRequests(), [resolverPrefs, setResolverPrefs] = useState<Record<string, string>>({}), [clearing, setClearing] = useState(false);
@@ -36,7 +44,14 @@ export default function ApplicationSettings({ onBack }: { onBack: () => void }) 
       </div>
     </header>
     <div className="flex-1 min-h-0 scroll-y px-4 md:px-6 pt-2 pb-10"><div className="max-w-[680px] mx-auto"><Notice error={error||app.error}/>
-      <Section title="外观"><Setting icon={app.theme==="dark"?<IMoon size={16}/>:<ISun size={16}/>} title="深色外观" description="切换应用的深色与浅色外观"><Toggle label="深色外观" on={app.theme==="dark"} onChange={on=>app.setTheme(on?"dark":"light")}/></Setting></Section>
+      <Section title="外观">
+        <Setting icon={app.theme==="dark"?<IMoon size={16}/>:<ISun size={16}/>} title="深色外观" description="切换应用的深色与浅色外观"><Toggle label="深色外观" on={app.theme==="dark"} onChange={on=>app.setTheme(on?"dark":"light")}/></Setting>
+        <Setting icon={<IHome size={16}/>} title="启动后打开页面" description="每次启动应用默认进入的页面">
+          <select aria-label="启动后打开页面" className="hpp-select-modern" style={{width:"auto",maxWidth:150}} value={app.startTab} onChange={e=>app.setStartTab(e.target.value as StartPage)}>
+            {START_TABS.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </Setting>
+      </Section>
       <Section title="播放">
         <Setting icon={<IVolMute size={16}/>} title="启动时静音" description="每次启动默认静音，下次启动生效"><Toggle label="启动时静音" on={app.muteOnStartup} onChange={app.setMuteOnStartup}/></Setting>
         <Setting icon={<IPlayF size={16}/>} title="自动播放下一条" description="播完后继续下一集或下一部作品"><Toggle label="自动播放下一条" on={host.prefs.autoNext} onChange={autoNext=>host.setPrefs({autoNext})}/></Setting>

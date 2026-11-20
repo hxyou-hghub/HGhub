@@ -6,7 +6,7 @@ import { usePluginRequests } from "../plugins/usePluginRequests";
 import PluginForms from "../plugins/PluginForms";
 import PluginDistribution from "../plugins/PluginDistribution";
 import { useHost } from "../plugins/HostContext";
-import { Tooltip, Modal, Toggle } from "../components/ui";
+import { Modal, Toggle } from "../components/ui";
 import { useStore } from "../store";
 
 const statuses: Record<InstalledPlugin["status"], string> = {
@@ -92,7 +92,6 @@ export default function Plugins({ onBack, focusId }: { onBack: () => void; focus
         <button aria-label="返回" onClick={onBack}><IBack size={20} /></button>
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <h1 className="truncate">插件中心</h1>
-          <Tooltip text="统一管理所有数据源与解析器插件。" />
         </div>
       </header>
       <ErrorMessage error={host.error} />
@@ -167,7 +166,6 @@ function PluginManagement({ plugins, reload, focusId = "" }: { plugins: Installe
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="truncate">已安装插件</h2>
               <span className="text-[12px] opacity-50 font-normal shrink-0">{plugins.length} 个插件</span>
-              <Tooltip text="当前可用的数据源与解析器列表。" />
             </div>
             {batchMode ? (
               <div className="hpp-batch-bar">
