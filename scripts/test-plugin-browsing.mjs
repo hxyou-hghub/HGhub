@@ -89,6 +89,11 @@ export async function testPluginBrowsing({ page, dispatch, root, output, report,
   assert.equal(await page.locator(".hpp-media-card:visible").count(), 23);
   await rail.getByRole("button", { name: "分类", exact: true }).click();
   await tabs.getByRole("button", { name: names[0], exact: true }).click();
+  await page.getByRole("button", { name: /分页影院甲 · 分类fast2026 · 0/ }).waitFor();
+  assert(await page.getByLabel("2026", { exact: true }).isChecked(), "Category filters survive returning from a stacked page");
+  assert.equal(await page.getByLabel("分类排序", { exact: true }).inputValue(), "fast", "Category sorting survives returning from a stacked page");
+  await page.locator(".hpp-filters fieldset").filter({ has: page.getByLabel("2026", { exact: true }) }).getByRole("button", { name: "不限", exact: true }).click();
+  await page.getByLabel("分类排序", { exact: true }).selectOption("");
   await page.getByRole("button", { name: /分页影院甲 · 分类默认 · 0/ }).waitFor();
   assert.equal((await call(ids[0])).filter(c => c.method === "catalog.getCategories").length, metadataCalls, "Fulfilled category metadata is cached for the plugin revision");
   const revised = template.replaceAll("__PLUGIN_ID__", ids[0]).replaceAll("__PLUGIN_NAME__", names[0]).replace("分页短剧", "修订后的分类");
@@ -102,8 +107,34 @@ export async function testPluginBrowsing({ page, dispatch, root, output, report,
   await categoryNav.waitFor({ state: "detached" });
   await page.getByRole("button", { name: /分页影院甲 · 分类默认 · 0/ }).waitFor();
   assert.equal(await categoryNav.count(), 0, "Single-level section hides the whole secondary nav");
+  const selectedSection = await sections.getByRole("button", { pressed: true }).textContent();
+  const categoryScroll = page.locator(".hpp-category-page .hpp-scroll");
+  await categoryScroll.evaluate(element => { element.scrollTop = 240; });
+  const savedScroll = await categoryScroll.evaluate(element => element.scrollTop);
+  const savedCards = await page.locator(".hpp-category-page .hpp-media-card").count();
+  assert(savedScroll > 0, "Category fixture has a scroll position to preserve");
   await rail.getByRole("button", { name: "首页", exact: true }).click();
+  await rail.getByRole("button", { name: "分类", exact: true }).click();
+  await page.locator(".hpp-category-page .hpp-media-card").first().waitFor();
+  assert.equal(await sections.getByRole("button", { pressed: true }).textContent(), selectedSection, "Selected section survives a tab round trip");
+  assert.equal(await categoryNav.count(), 0, "Single-level navigation stays unchanged after a tab round trip");
+  assert.equal(await page.locator(".hpp-category-page .hpp-media-card").count(), savedCards, "Loaded category items survive a tab round trip");
+  assert.equal(await categoryScroll.evaluate(element => element.scrollTop), savedScroll, "Category scroll position survives a tab round trip");
+  await rail.getByRole("button", { name: "首页", exact: true }).click();
+  const pager = page.locator(".hg-preview-pager small");
+  await pager.waitFor({ timeout: 10000 });
+  const before = await pager.textContent();
+  const homeNext = page.getByRole("button", { name: "下一个", exact: true });
+  if (await homeNext.count() && await homeNext.isEnabled()) {
+    await homeNext.click();
+    await page.waitForFunction(prev => document.querySelector(".hg-preview-pager small")?.textContent !== prev, before);
+  }
+  const advanced = await pager.textContent();
+  await rail.getByRole("button", { name: "分类", exact: true }).click();
+  await rail.getByRole("button", { name: "首页", exact: true }).click();
+  await pager.waitFor();
+  assert.equal(await pager.textContent(), advanced, "Home queue position survives a tab round trip");
   for (const id of ids) assert((await dispatch({ action: "remove", params: { id } })).ok);
   await page.reload();
-  report.passed.push("Category provider tabs, two-level section/category navigation, lazy single-category first screen, waterfall pagination with failed-cursor retry, ID deduplication, repeated-cursor termination, filter/query cancellation, category-tree revision cache and independent multi-source search all use production UI");
+  report.passed.push("Category provider tabs, two-level section/category navigation, lazy single-category first screen, waterfall pagination with failed-cursor retry, ID deduplication, repeated-cursor termination, filter/query cancellation, category state retention across tab/stack navigation, category-tree revision cache and independent multi-source search all use production UI");
 }

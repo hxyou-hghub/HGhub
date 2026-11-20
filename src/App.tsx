@@ -25,8 +25,10 @@ import { addPluginListener, invoke } from "@tauri-apps/api/core";
 export default function App() { return <HostProvider><Application/></HostProvider>; }
 function Application() {
   const app=useStore(),host=useHost(),[collapsed,setCollapsed]=useState(false),top=app.stack[app.stack.length-1];
+  const [categoryVisited,setCategoryVisited]=useState(app.tab==="category");
   const backRef=useRef(()=>{});
   backRef.current=()=>{if(runBack(10))return;if(app.fs){app.setFs(false);return;}if(document.fullscreenElement){void document.exitFullscreen();return;}if(runBack())return;if(app.stack.length)app.pop();else if(app.tab!=="home")app.setTab("home");else void invoke("plugin:app|exit",{code:0}).catch(()=>{});};
+  useEffect(()=>{if(app.tab==="category")setCategoryVisited(true);},[app.tab]);
   useEffect(()=>{if(app.platform!=="android")return;let disposed=false;let listener:{unregister:()=>Promise<void>}|undefined;void addPluginListener("app","back-button",()=>backRef.current()).then(l=>{if(disposed)void l.unregister();else listener=l;}).catch(()=>{});return()=>{disposed=true;void listener?.unregister();};},[app.platform]);
   const manage=(focusId?:string)=>{host.clearAuth();app.push({kind:"plugins",focusId});};
   const open=(pluginId:string,mediaId:string)=>app.push({kind:"media",pluginId,mediaId});
@@ -43,7 +45,10 @@ function Application() {
       <div className="absolute inset-0" inert={app.tab!=="home"||!!top} hidden={app.tab!=="home"||!!top} style={{bottom:isMobile&&!top&&!app.fs&&!app.clean&&!app.watching?"calc(40px + var(--sab, 0px))":0}}>
         <ImmersiveHome active={app.tab==="home"&&!top} open={open} manage={manage}/>
       </div>
-      <div className="absolute inset-0" inert={!!top} hidden={app.tab==="home"} style={{bottom:isMobile&&!top?"calc(40px + var(--sab, 0px))":0}}>{app.tab!=="home"&&(!top||top.kind==="media")&&(app.tab==="category"?<PluginCategory open={open} manage={manage} openContent={(kind,pluginId)=>app.push({kind,pluginId})}/>:app.tab==="search"?<PluginSearch open={open} manage={manage}/>:<LibraryPage open={open} manage={manage} settings={()=>app.push({kind:"settings"})}/>)}</div>
+      <div className="absolute inset-0" inert={!!top} hidden={app.tab!=="search"&&app.tab!=="profile"} style={{bottom:isMobile&&!top?"calc(40px + var(--sab, 0px))":0}}>{app.tab!=="home"&&app.tab!=="category"&&(!top||top.kind==="media")&&(app.tab==="search"?<PluginSearch open={open} manage={manage}/>:<LibraryPage open={open} manage={manage} settings={()=>app.push({kind:"settings"})}/>)}</div>
+      <div className="absolute inset-0" inert={app.tab!=="category"||!!top} hidden={app.tab!=="category"||(!!top&&top.kind!=="media")} style={{bottom:isMobile&&!top?"calc(40px + var(--sab, 0px))":0}}>
+        {(categoryVisited||app.tab==="category")&&<PluginCategory open={open} manage={manage} openContent={(kind,pluginId)=>app.push({kind,pluginId})}/>}
+      </div>
       {app.stack.map((page,i)=><div key={page.key} className={`absolute inset-0 ${page.kind==="media"?"":"bg-bg"} ${i===app.stack.length-1?"z-30":i===app.stack.length-2&&top?.kind==="media"&&!app.watching?"pointer-events-none":"invisible pointer-events-none"}`}>
         {page.kind==="plugins"?<Plugins onBack={app.pop} focusId={page.focusId}/>:page.kind==="settings"?<ApplicationSettings onBack={app.pop}/>:page.kind==="section"?<SectionRoute {...page} open={open} onBack={app.pop}/>:page.kind==="media"?<MediaPage pluginId={page.pluginId} mediaId={page.mediaId} start={page.start} onBack={app.pop} manage={manage} active={i===app.stack.length-1} onSwitch={(pluginId,mediaId,start)=>app.replace({kind:"media",pluginId,mediaId,start})}/>:<ContentRoute page={page} active={i===app.stack.length-1}/>}
       </div>)}

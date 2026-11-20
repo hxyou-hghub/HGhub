@@ -36,8 +36,11 @@ function useWaterfallColumns(host: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     const node = host.current;
     if (!node) return;
-    const measure = () => setCount(Math.max(2, Math.min(WATERFALL_MAX_COLUMNS,
-      Math.floor((node.clientWidth + WATERFALL_GAP) / (WATERFALL_MIN_COLUMN + WATERFALL_GAP)))));
+    const measure = () => {
+      if (!node.clientWidth) return;
+      setCount(Math.max(2, Math.min(WATERFALL_MAX_COLUMNS,
+        Math.floor((node.clientWidth + WATERFALL_GAP) / (WATERFALL_MIN_COLUMN + WATERFALL_GAP)))));
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(node);
