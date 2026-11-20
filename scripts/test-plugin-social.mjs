@@ -103,7 +103,7 @@ export async function testPluginSocial({ page, dispatch, root, base, output, rep
   assert(allEvents.some(e => e.method === "interact.follow" && e.args.authorId === "creator:opaque"));
   assert(allEvents.some(e => e.method === "progress.report" && e.args.event === "end" && e.args.episodeId === "ep:two"));
   await page.getByRole("button", { name: "返回", exact: true }).click();
-  await page.getByRole("button", { name: "来自片源", exact: true }).click();
+  await page.getByRole("button", { name: "账号收藏", exact: true }).click();
   const account = page.locator("section.hpp-account").filter({ has: page.getByRole("heading", { name: "虚构评论影院", exact: true }) });
   await account.getByRole("button", { name: "云端收藏", exact: true }).click();
   await account.getByLabel("虚构评论影院收藏目录", { exact: true }).selectOption("folder:opaque");

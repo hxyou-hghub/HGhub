@@ -388,7 +388,7 @@ try {
   assert((await dispatch({action:"call",params:{id:"fixture.forms",method:"auth.submit",args:{methodId:"direct",values:{}},requestId:"cloud-login"}})).ok);
   await page.reload();
   await rail.getByRole("button", { name: "我的", exact: true }).click();
-  await page.getByRole("button", { name: "来自片源", exact: true }).click();
+  await page.getByRole("button", { name: "账号收藏", exact: true }).click();
   const account=page.locator("section.hpp-account").filter({has:page.getByRole("heading",{name:"虚构账号与表单",exact:true})});
   await account.getByText("虚构观众",{exact:true}).waitFor();
   await account.getByRole("button",{name:"云端收藏",exact:true}).click();
