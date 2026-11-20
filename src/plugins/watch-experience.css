@@ -182,13 +182,14 @@
 .hg-proxy-dialog{margin:auto;width:min(460px,calc(100vw - 32px));max-height:85dvh;border:1px solid var(--p-s4);border-radius:24px;padding:22px;background:var(--p-s2);color:var(--p-on);overflow:auto;box-shadow:0 18px 70px #0005}
 .hg-proxy-dialog::backdrop{background:#0008;backdrop-filter:blur(3px)}
 .hg-proxy-dialog header,.hg-proxy-dialog h2,.hg-proxy-dialog footer{display:flex;gap:12px;align-items:center}
+.hg-proxy-dialog footer{justify-content:center}
 .hg-proxy-dialog header{justify-content:space-between}.hg-proxy-dialog h2{font-size:18px;font-weight:700}.hg-proxy-dialog header button{display:grid;place-items:center;width:36px;height:36px}
 .hg-proxy-dialog p{font-size:12px;color:var(--p-mut);line-height:1.8;margin:12px 0}
 .hg-proxy-modes{display:flex;gap:4px;padding:4px;border-radius:30px;background:var(--p-s3);margin:18px 0}
 .hg-proxy-modes button{flex:1;border-radius:24px;min-height:40px;font-size:12px}.hg-proxy-modes button[aria-pressed=true]{background:var(--p-primary);color:var(--p-on-primary)}
 .hg-proxy-dialog label{display:block;font-size:12px;margin-top:12px}.hg-proxy-dialog input{display:block;width:100%;min-height:42px;margin-top:7px;padding:10px;border-radius:10px;background:var(--p-s3);outline-color:var(--p-primary)}
 .hg-proxy-dialog .hg-proxy-error{color:var(--p-primary)}.hg-proxy-reveal{font-size:12px;color:var(--p-primary);margin-top:8px}
-.hg-proxy-dialog footer>button{flex:1;min-height:44px;border-radius:24px;font-size:13px}.hg-proxy-dialog footer>button:first-child{border:1px solid var(--p-s4)}.hg-proxy-dialog button:disabled{opacity:.45}
+.hg-proxy-dialog footer>button{min-width:132px;padding:0 24px;min-height:44px;border-radius:24px;font-size:13px}.hg-proxy-dialog footer>button:first-child{border:1px solid var(--p-s4)}.hg-proxy-dialog button:disabled{opacity:.45}
 
 /* Player drawers stay above the native landscape video stage. */
 .hg-player-sheet{height:72dvh;max-height:calc(100dvh - 40px - var(--sab,0px))}
