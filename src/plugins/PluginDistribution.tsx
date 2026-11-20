@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { pluginCommand, pluginError, type InstalledPlugin } from "./client";
 import type { PluginFailure } from "./protocol";
 import { usePluginRequests } from "./usePluginRequests";
@@ -13,7 +14,7 @@ interface ImportItem {
   installedVersion?: string; error?: PluginFailure;
 }
 interface Preview { token: string; name: string; description: string; items: ImportItem[]; updatesOnly: boolean; subscriptions: { location: string; name: string; description: string }[] }
-interface Outcome { key: string; id: string; plugin?: InstalledPlugin; error?: PluginFailure }
+interface Outcome { key: string; id: string; plugin?: InstalledPlugin; error?: PluginFailure; replaced?: boolean }
 interface UpdateStatus { id: string; status: "current" | "available" | "failed" | "noSource"; error?: PluginFailure }
 interface CodeMetaPreview { id?: string; name?: string; version?: string; description?: string; lines: number; chars: number }
 
@@ -153,9 +154,38 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const downgrade = true; // 彻底移除版本概念：导入时始终允许覆盖安装
   const installOnly = false; // 彻底移除“仅安装暂不启用”机制：导入即直接安装并启用
-  const [report, setReport] = useState<Outcome[]>([]), [updates, setUpdates] = useState<UpdateStatus[]>([]);
+  const [updates, setUpdates] = useState<UpdateStatus[]>([]);
   const [codePreview, setCodePreview] = useState<CodeMetaPreview | null>(null);
+  const [toast, setToast] = useState<{ text: string; kind: "success" | "error" } | null>(null);
   const token = useRef<string | null>(null);
+
+  useEffect(() => () => { if (token.current) void pluginCommand("distribution.discard", { token: token.current }).catch(() => {}); }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 2600);
+    return () => window.clearTimeout(t);
+  }, [toast]);
+
+  const showToast = (items: Outcome[]) => {
+    const failed = items.filter(i => i.error || i.plugin?.error);
+    const total = items.length;
+    if (failed.length === total) {
+      setToast({ text: total === 1 ? (failed[0].error?.message || "导入失败") : `导入失败（${total} 个）`, kind: "error" });
+    } else if (failed.length > 0) {
+      setToast({ text: `已导入 ${total - failed.length} 个，失败 ${failed.length} 个`, kind: "success" });
+    } else {
+      const replaced = items.filter(i => i.replaced).length;
+      const added = total - replaced;
+      const verb = (replaced > 0 && added > 0) ? "导入" : replaced > 0 ? "替换" : "安装";
+      setToast({
+        text: total === 1
+          ? `已${verb}并启用「${items[0].plugin?.meta.name || items[0].id}」`
+          : `已${verb}并启用 ${total} 个插件`,
+        kind: "success",
+      });
+    }
+  };
 
   useEffect(() => {
     try {
@@ -186,8 +216,6 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
     setError("");
   };
 
-  useEffect(() => () => { if (token.current) void pluginCommand("distribution.discard", { token: token.current }).catch(() => {}); }, []);
-
   const replacePreview = (next: Preview | null, changedOnly = false) => {
     if (token.current && token.current !== next?.token) void pluginCommand("distribution.discard", { token: token.current }).catch(() => {});
     token.current = next?.token || null;
@@ -203,13 +231,18 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
 
   const readLocations = async (locations: string[]) => {
     if (!locations.length) return;
-    setReport([]); setUpdates([]);
+    setUpdates([]);
     replacePreview(await request<Preview>("distribution.preview", { locations }));
+  };
+
+  const markReplaced = (items: Outcome[], preview: Preview): Outcome[] => {
+    const replacedKeys = new Set(preview.items.filter(i => i.installedVersion && !i.error).map(i => i.key));
+    return items.map(i => (replacedKeys.has(i.key) ? { ...i, replaced: true } : i));
   };
 
   const directImportLocations = async (locations: string[]) => {
     if (!locations.length) return;
-    setReport([]); setUpdates([]);
+    setUpdates([]);
     const p = await request<Preview>("distribution.preview", { locations });
     const validKeys = p.items.filter(i => !i.error).map(i => i.key);
     if (!validKeys.length) {
@@ -222,7 +255,7 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
       allowDowngrade: downgrade,
       installOnly,
     });
-    token.current = null; setPreview(null); setReport(result.items); setUpdates([]); await reload();
+    token.current = null; setPreview(null); setUpdates([]); showToast(markReplaced(result.items, p)); await reload();
   };
 
   const canInspect = !busy && (
@@ -271,7 +304,7 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
         const plugin = await request<InstalledPlugin>("import", { code: target, allowDowngrade: downgrade, installOnly });
         replacePreview(null);
         setCodePreview(null);
-        setReport([{ key: plugin.meta.id, id: plugin.meta.id, plugin }]);
+        showToast([{ key: plugin.meta.id, id: plugin.meta.id, plugin }]);
         await reload();
       });
     }
@@ -280,11 +313,11 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
   const apply = () => run(async () => {
     if (!preview) return;
     const result = await request<{ items: Outcome[] }>("distribution.apply", { token: preview.token, selected, allowDowngrade: downgrade, installOnly });
-    token.current = null; setPreview(null); setReport(result.items); setUpdates([]); await reload();
+    const items = markReplaced(result.items, preview);
+    token.current = null; setPreview(null); setUpdates([]); showToast(items); await reload();
   });
 
   const checkUpdates = () => void run(async () => {
-    setReport([]);
     const result = await request<{ preview: Preview; statuses: UpdateStatus[] }>("updates.check", { ids: plugins.map(p => p.meta.id) });
     replacePreview(result.preview.items.length ? result.preview : null);
     if (!result.preview.items.length) void pluginCommand("distribution.discard", { token: result.preview.token });
@@ -292,7 +325,7 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
   });
 
   const refreshSubscription = (subscription: { id: string; name: string; location: string }) => run(async () => {
-    setUpdates([]); setReport([]);
+    setUpdates([]);
     const nextPreview = await request<Preview>("subscriptions.refresh", { id: subscription.id });
     replacePreview(nextPreview, true);
   });
@@ -721,39 +754,16 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
       </Modal>
     )}
 
-    {!!report.length && (
-      <Modal open={true} onClose={() => setReport([])} width={480}>
-        <div className="hpp-modal-box" aria-label="插件导入结果">
-          <div className="hpp-modal-header">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <h3 className="text-sm font-semibold text-on truncate">导入结果</h3>
-              <span className="text-xs text-mut font-normal">（{report.length}）</span>
-            </div>
-            <button className="hpp-modal-close" onClick={() => setReport([])} aria-label="关闭">
-              <IClose size={14} />
-            </button>
-          </div>
-          <div className="hpp-modal-body">
-            {report.map(item => {
-              const isError = item.error || item.plugin?.error;
-              const text = item.error ? item.error.message : item.plugin?.error ? `初始化失败：${item.plugin.error.message}` : item.plugin?.enabled ? "已安装并启用" : "已安装，未启用";
-              return (
-                <div key={item.key} className="hpp-modal-item">
-                  <span className="hpp-modal-item-name">{item.plugin?.meta.name || item.id || "文件"}</span>
-                  <span className={`hpp-modal-item-status ${isError ? "danger" : "success"}`}>
-                    {text}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="hpp-modal-footer justify-center">
-            <button type="button" className="primary" onClick={() => setReport([])}>
-              完成
-            </button>
-          </div>
-        </div>
-      </Modal>
+    {toast && createPortal(
+      <div
+        role="status"
+        aria-live="polite"
+        className={`fixed left-1/2 -translate-x-1/2 bottom-8 z-[10000] flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium text-white shadow-lg pointer-events-none a-fade ${toast.kind === "error" ? "bg-red-500/95" : "bg-black/80 dark:bg-emerald-600/95"}`}
+      >
+        {toast.kind === "error" ? <IClose size={13} /> : <ICheck size={13} />}
+        <span>{toast.text}</span>
+      </div>,
+      document.body
     )}
 
     {!!updates.length && (

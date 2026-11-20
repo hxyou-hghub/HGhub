@@ -30,7 +30,9 @@ const MAX_RESOURCE: usize = 8 * 1024 * 1024;
 static MEDIA_TRANSFERS: once_cell::sync::Lazy<Arc<tokio::sync::Semaphore>> =
     once_cell::sync::Lazy::new(|| Arc::new(tokio::sync::Semaphore::new(6)));
 static IMAGE_TRANSFERS: once_cell::sync::Lazy<Arc<tokio::sync::Semaphore>> =
-    once_cell::sync::Lazy::new(|| Arc::new(tokio::sync::Semaphore::new(2)));
+    // 图片走独立队列（不与分片队列争用），并发上限按宿主策略设定：2 会让封面网格每次只下 2 张、
+    // 与带宽无关地串行等待；放宽到 8 让整屏封面并行拉取，仍与分片队列（6）分离、不抢占前台播放。
+    once_cell::sync::Lazy::new(|| Arc::new(tokio::sync::Semaphore::new(8)));
 mod preload;
 #[derive(Default)]
 pub struct MediaSessions {

@@ -38,17 +38,31 @@ export function usePagedPlugin<T extends { id: string }>({ plugin, method, args 
   return { page, busy, error, warning, refresh: () => load(undefined, true), retry: () => load(failed.current, true), more: () => load(current.current?.next || undefined) };
 }
 
-export function PageLoadMore({ next, busy, error, more, label = "加载更多", auto = true }: {
+/** 分页加载的触发与占位。以同构骨架提前预取，弱化“到底再等”的过程感：
+ *  - 触发阈值提前约两屏，用户在滚动途中内容已就位；
+ *  - 请求期间渲染与真实卡片同形的骨架网格，取代文字状态跳变；
+ *  - 观察器在请求期间保持挂载，追加完成后无需重建即可继续衔接。 */
+export function PageLoadMore({ next, busy, error, more, label = "加载更多", auto = true, skeleton }: {
   next?: string | null; busy: boolean; error: string; more: () => void; label?: string; auto?: boolean;
+  skeleton?: { columns?: number; rows?: number };
 }) {
   const sentinel = useRef<HTMLDivElement>(null), latest = useRef(more); latest.current = more;
+  const canMore = !!next && !busy && !error;
   useEffect(() => {
     const node = sentinel.current;
-    if (!auto || !node || !next || busy || error) return;
+    if (!auto || !node || !canMore) return;
     const observer = new IntersectionObserver(entries => {
       if (entries.some(entry => entry.isIntersecting)) latest.current();
-    }, { root: node.closest(".hpp-scroll"), rootMargin: "0px 0px 120px 0px" });
+    }, { root: node.closest(".hpp-scroll"), rootMargin: "0px 0px 800px 0px" });
     observer.observe(node); return () => observer.disconnect();
-  }, [next, busy, error, auto]);
-  return <><div ref={sentinel} className="hpp-page-sentinel" aria-hidden="true"/><button className="hpp-more" disabled={busy || (!next && !error)} onClick={more}>{busy ? "正在加载…" : error ? "加载失败，点击重试" : next ? label : "没有更多内容"}</button></>;
+  }, [canMore, auto]);
+  const pending = busy && !!next;
+  const count = (skeleton?.columns ?? 6) * (skeleton?.rows ?? 2);
+  return <>
+    <div ref={sentinel} className="hpp-page-sentinel" aria-hidden="true"/>
+    {pending && <div className="hpp-page-skeleton" aria-hidden="true">{Array.from({ length: count }, (_, i) => <div className="hpp-page-skeleton-card" key={i}><div className="hpp-page-skeleton-poster"/><div className="hpp-page-skeleton-line"/><div className="hpp-page-skeleton-line short"/></div>)}</div>}
+    {error
+      ? <button className="hpp-more" onClick={more}>加载失败，点击重试</button>
+      : !pending && <button className="hpp-more" disabled={!next} onClick={more}>{next ? label : "没有更多内容"}</button>}
+  </>;
 }

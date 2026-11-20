@@ -141,13 +141,13 @@ function CategoryBrowser({plugin,open,entries}:{plugin:InstalledPlugin;open:Open
   </>;
 }
 function CategoryNav({tree,section,categories,active,entries,showCategories,onSection,onCategory}:{tree:Category[];section?:Category;categories:Category[];active?:Category;entries:React.ReactNode;showCategories:boolean;onSection:(id:string)=>void;onCategory:(id:string)=>void}) {
-  return <>
+  return <div className="hpp-cat-nav">
     <div className="hpp-section-row">
       <nav className="hpp-section-tabs" aria-label="分区">{tree.map(s=><button key={s.id} aria-pressed={s.id===section?.id} className={s.id===section?.id?"selected":""} onClick={()=>onSection(s.id)}>{s.label}</button>)}</nav>
       {entries}
     </div>
     {showCategories&&<nav className="hpp-category-tabs" aria-label="分类">{categories.map(c=><button key={c.id} aria-pressed={c.id===active?.id} className={c.id===active?.id?"selected":""} onClick={()=>onCategory(c.id)}>{c.label}</button>)}</nav>}
-  </>;
+  </div>;
 }
 function CategoryResults({plugin:p,category,open}:{plugin:InstalledPlugin;category:Category;open:OpenMedia}) {
   const metadata=usePluginRequests(),[filters,setFilters]=useState<Filter[]>(category.filters||[]),[sorts,setSorts]=useState<FilterOption[]>(category.sorts||[]),[values,setValues]=useState<Record<string,string[]>>({}),[sort,setSort]=useState(""),[error,setError]=useState("");
@@ -162,7 +162,7 @@ function CategoryResults({plugin:p,category,open}:{plugin:InstalledPlugin;catego
     {list.busy&&!list.page?<div className="hpp-skeleton"/>:hasItems?<WaterfallCards pluginId={p.meta.id} items={list.page!.items} open={i=>open(p.meta.id,i.id,true)}/>:null}
     {!list.busy&&!hasItems&&activeError&&<ErrorState error={activeError} retry={list.error?list.retry:undefined} retryLabel="重试分类"/>}
     {!list.busy&&!hasItems&&!activeError&&<div className="py-16 text-center text-mut a-rise"><IGrid size={32} className="mx-auto mb-3 opacity-30 text-dim"/><p className="text-sm font-medium">暂无分类内容</p><p className="text-xs text-dim mt-1.5">可尝试选择其他分类或筛选条件</p></div>}
-    {hasItems&&<PageLoadMore next={list.page?.next} busy={list.busy} error={list.error} more={list.more}/>}
+    {hasItems&&<PageLoadMore next={list.page?.next} busy={list.busy} error={list.error} more={list.more} skeleton={{columns:6,rows:2}}/>}
   </>;
 }
 export function PluginSearch({open,manage}:{open:OpenMedia;manage:()=>void}) {
@@ -230,7 +230,7 @@ export function PluginSearch({open,manage}:{open:OpenMedia;manage:()=>void}) {
         {choice?<div className="hpp-source-choice legacy-search-options"><div className="flex items-center justify-between mb-3"><h2 className="text-sm font-bold">选择内容来源</h2><button onClick={()=>setChoice(null)} className="text-primary text-xs">返回搜索</button></div>{choice.map(h=><button className="block w-full text-left p-3 mb-2 bg-s3 rounded-(--r-ctl) text-xs" key={h.pluginId+h.item.id} onClick={()=>open(h.pluginId,h.item.id)}>{sources.find(p=>p.meta.id===h.pluginId)?.meta.name} · {h.item.title}</button>)}</div>:
           <SearchPosters groups={visibleGroups} names={Object.fromEntries(sources.map(p=>[p.meta.id,p.meta.name]))} open={openGroup}/>}
         {!visibleGroups.length&&(loading?<div className="flex justify-center py-12"><div className="w-8 h-8 spinner" aria-label="正在搜索"/></div>:<div className="py-12 text-center text-mut"><ISearch size={26} className="mx-auto mb-3"/><p className="text-sm">没有找到相关内容</p><p className="text-xs text-dim mt-2">换个关键词或片源试试</p></div>)}
-        {activeSources.map(p=><section key={p.meta.id}><Notice error={errors[p.meta.id]||warnings[p.meta.id]||""} retry={errors[p.meta.id]?()=>void load(p,submitted,epoch.current,failedCursors.current.get(p.meta.id)):undefined} retryLabel={tab==="all"?`重试 ${p.meta.name}`:"重试搜索"}/>{pages[p.meta.id]?.next&&<PageLoadMore next={pages[p.meta.id].next} busy={!!busy[p.meta.id]} error={errors[p.meta.id]||""} more={()=>void load(p,submitted,epoch.current,pages[p.meta.id].next||undefined)} label={`加载更多 · ${p.meta.name}`}/>}</section>)}
+        {activeSources.map(p=><section key={p.meta.id}><Notice error={errors[p.meta.id]||warnings[p.meta.id]||""} retry={errors[p.meta.id]?()=>void load(p,submitted,epoch.current,failedCursors.current.get(p.meta.id)):undefined} retryLabel={tab==="all"?`重试 ${p.meta.name}`:"重试搜索"}/>{pages[p.meta.id]?.next&&<PageLoadMore next={pages[p.meta.id].next} busy={!!busy[p.meta.id]} error={errors[p.meta.id]||""} more={()=>void load(p,submitted,epoch.current,pages[p.meta.id].next||undefined)} label={`加载更多 · ${p.meta.name}`} skeleton={{columns:6,rows:2}}/>}</section>)}
       </>}
     </div>
   </div>;

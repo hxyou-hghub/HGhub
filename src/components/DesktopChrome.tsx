@@ -67,7 +67,7 @@ export function TitlebarVolume() {
   </div>;
 }
 
-export function PlaybackWindowActions() {
+export function PlaybackWindowActions({ onExit }: { onExit?: () => void }) {
   const { platform } = useStore();
   const [pinned, setPinned] = useState(false), [pending, setPending] = useState(false), [error, setError] = useState("");
   useEffect(() => { let live = true; void appWindow().isAlwaysOnTop().then(v => { if(live) setPinned(v); }).catch(()=>{}); return()=>{live=false;}; }, []);
@@ -78,7 +78,7 @@ export function PlaybackWindowActions() {
     {platform !== "macos" && <>
     <button aria-label="最小化" onClick={() => appWindow().minimize().catch(() => {})}><IMinus size={16}/></button>
     <button aria-label="最大化或还原" onClick={() => appWindow().toggleMaximize().catch(() => {})}><ISquare size={14}/></button>
-    <button className="win-close" aria-label="关闭窗口" onClick={() => appWindow().close().catch(() => {})}><IClose size={17}/></button></>}
+    <button className="win-close" aria-label="退出播放" onClick={() => onExit ? onExit() : appWindow().close().catch(() => {})}><IClose size={17}/></button></>}
   </div>;
 }
 

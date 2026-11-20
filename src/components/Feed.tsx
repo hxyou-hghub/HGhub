@@ -830,7 +830,7 @@ export default function Feed({media, position, active=true, preparing=false, err
                 {onBack&&<button aria-label="返回" onClick={onBack}><IBack size={22}/></button>}
                 <div className="hg-watch-title"><h1>{title}</h1><p>{episodeLabel ? `${formatEpisodeLabel(episodeLabel)}${episodeCount?` / 共 ${episodeCount} 集`:""}` : author}{qualityLabel ? ` · ${qualityLabel}` : ""}</p></div>
                 {!isDesktop&&<><button aria-label={muted?"取消静音":"静音"} onClick={()=>setMuted(v=>!v)}>{muted?<IVolMute size={23}/>:<IVol size={23}/>}</button>{panels.episodes&&<button aria-label="选集" onClick={()=>setPanel("episodes")}><IList size={24}/></button>}<button aria-label="更多" onClick={()=>setPanel("more")}><IMore size={24}/></button></>}
-                {isDesktop&&store.watching&&<PlaybackWindowActions/>}
+                {isDesktop&&store.watching&&<PlaybackWindowActions onExit={onBack}/>}
               </header>}
             </section>
           );
