@@ -19,10 +19,10 @@ export function BrowseFrame({title,children,tools,onBack}:{title:string;children
     <div className="hpp-page">
       <header className="hpp-header">
         {onBack && <button aria-label="返回" onClick={onBack}><IBack size={20} /></button>}
-        <div className="flex items-center gap-2">
-          <h1>{title}</h1>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <h1 className="truncate">{title}</h1>
         </div>
-        {tools && <div className="hpp-header-tools">{tools}</div>}
+        {tools && <div className="hpp-header-tools shrink-0">{tools}</div>}
       </header>
       <div className="hpp-scroll"><div className="hpp-content">{children}</div></div>
     </div>

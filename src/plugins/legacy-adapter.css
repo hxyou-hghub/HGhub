@@ -44,6 +44,9 @@
 .hpp-category-page .hpp-provider-tabs{padding:0 16px;gap:20px}
 .hpp-page .hpp-header,.legacy-settings .hpp-header{min-height:0;padding:calc(var(--sat,0px) + 14px) 16px 12px}
 .hpp-page .hpp-header h1,.legacy-settings .hpp-header h1{font-size:24px;letter-spacing:0}
+@media(max-width:800px){
+  .hpp-page .hpp-header h1,.legacy-settings .hpp-header h1{font-size:18px}
+}
 .legacy-settings .hpp-header>button{border-radius:7px}
 .legacy-settings .hpp-header>button:active{transform:scale(.98)}
 .hpp-preview-strip:has(.legacy-row-card){scrollbar-width:none}

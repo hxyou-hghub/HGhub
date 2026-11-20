@@ -47,9 +47,24 @@ export function Modal({ open, onClose, children, width = 480 }: { open: boolean;
   }, [open]);
   if (!render) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4"
+      style={{
+        paddingTop: "max(var(--sat, 0px), 12px)",
+        paddingBottom: "max(var(--sab, 0px), 12px)",
+      }}
+    >
       <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm ${open ? "a-fade" : "opacity-0 transition-opacity"}`} onClick={onClose} />
-      <div className={`relative bg-s1 text-on rounded-2xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden ${open ? "a-scale-in" : "opacity-0 scale-90 transition-all"}`} style={{ width, maxWidth: "100%", maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
+      <div
+        className={`relative bg-s1 text-on rounded-(--r-lg) shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden ${open ? "a-scale-in" : "opacity-0 scale-90 transition-all"}`}
+        style={{
+          width,
+          maxWidth: "100%",
+          maxHeight: "calc(100vh - max(var(--sat, 0px), 12px) - max(var(--sab, 0px), 12px) - 20px)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         {children}
       </div>
     </div>,
@@ -116,11 +131,18 @@ export function Tooltip({
   useEffect(() => {
     if (!open) return;
     const handleScroll = () => updatePos();
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
+      if (triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
     window.addEventListener("scroll", handleScroll, true);
     window.addEventListener("resize", handleScroll);
+    window.addEventListener("pointerdown", handleOutside, true);
     return () => {
       window.removeEventListener("scroll", handleScroll, true);
       window.removeEventListener("resize", handleScroll);
+      window.removeEventListener("pointerdown", handleOutside, true);
     };
   }, [open]);
 

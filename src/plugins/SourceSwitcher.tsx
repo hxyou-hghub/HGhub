@@ -110,7 +110,7 @@ export default function SourceSwitcher({ plugin, detail, previousEpisode, getPos
   }
   candidates.sort((a, b) => sourceScore(detail, b.item) - sourceScore(detail, a.item));
   return <div className="hpp-source-overlay"><div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="hpp-source-title" className="hpp-page hpp-source-dialog">
-    <header className="hpp-header"><button aria-label="返回" onClick={onClose}><IBack size={20} /></button><h2 id="hpp-source-title">换源 · {detail.title}</h2><div className="hpp-header-tools"><button disabled={commitLock.current} onClick={onClose}>取消换源</button></div></header>
+    <header className="hpp-header"><button aria-label="返回" onClick={onClose}><IBack size={20} /></button><h2 id="hpp-source-title" className="min-w-0 flex-1 truncate text-base font-semibold">换源 · {detail.title}</h2><div className="hpp-header-tools shrink-0"><button disabled={commitLock.current} onClick={onClose}>取消换源</button></div></header>
     <div className="hpp-scroll"><div className="hpp-content"><Notice error={error}/>
       {!chosen ? <><p className="hpp-muted">确认其他来源后保留原来源的收藏和进度。</p>
         {!available.length && <p>没有其他可用数据源，请先导入并启用数据源。</p>}

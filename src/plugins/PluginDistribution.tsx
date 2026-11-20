@@ -324,7 +324,7 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
             粘贴代码
           </button>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="hpp-import-header-tools flex items-center gap-2.5">
           <button
             type="button"
             role="switch"
@@ -425,7 +425,7 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
       <Modal open={true} onClose={() => replacePreview(null)} width={540}>
         <section className="hpp-modal-box" aria-label="插件导入预览">
           <div className="hpp-modal-header">
-            <h3>{preview.name}（{preview.items.length} 个条目）</h3>
+            <h3 className="min-w-0 flex-1 truncate">{preview.name}（{preview.items.length} 个条目）</h3>
             <button className="hpp-modal-close" onClick={() => replacePreview(null)} aria-label="关闭">✕</button>
           </div>
           <div className="hpp-modal-body">
@@ -471,9 +471,9 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
       <Modal open={true} onClose={() => setCodePreview(null)} width={500}>
         <div className="hpp-modal-box" aria-label="插件代码详情">
           <div className="hpp-modal-header">
-            <div className="flex items-center gap-2">
-              <h3>插件代码详情</h3>
-              {codePreview.name && <span className="text-xs opacity-60">（{codePreview.name}）</span>}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <h3 className="truncate">插件代码详情</h3>
+              {codePreview.name && <span className="text-xs opacity-60 truncate">（{codePreview.name}）</span>}
             </div>
             <button className="hpp-modal-close" onClick={() => setCodePreview(null)} aria-label="关闭">✕</button>
           </div>
@@ -525,9 +525,9 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
       <Modal open={true} onClose={() => setReport([])} width={500}>
         <div className="hpp-modal-box" aria-label="插件导入结果">
           <div className="hpp-modal-header">
-            <div className="flex items-center gap-2">
-              <h3>导入结果</h3>
-              <span className="text-xs opacity-50 font-normal">（{report.length} 项）</span>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <h3 className="truncate">导入结果</h3>
+              <span className="text-xs opacity-50 font-normal shrink-0">（{report.length} 项）</span>
             </div>
             <button className="hpp-modal-close" onClick={() => setReport([])} aria-label="关闭">✕</button>
           </div>
@@ -558,9 +558,9 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
       <Modal open={true} onClose={() => setUpdates([])} width={500}>
         <div className="hpp-modal-box" aria-label="插件更新检查结果">
           <div className="hpp-modal-header">
-            <div className="flex items-center gap-2">
-              <h3>更新检查</h3>
-              <span className="text-xs opacity-50 font-normal">（{updates.length} 项）</span>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <h3 className="truncate">更新检查</h3>
+              <span className="text-xs opacity-50 font-normal shrink-0">（{updates.length} 项）</span>
             </div>
             <button className="hpp-modal-close" onClick={() => setUpdates([])} aria-label="关闭">✕</button>
           </div>

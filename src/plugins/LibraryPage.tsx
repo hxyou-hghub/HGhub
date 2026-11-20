@@ -13,7 +13,6 @@ export default function LibraryPage({ open, manage, settings }: { open: OpenMedi
   const [trackingOnly, setTrackingOnly] = useState(false);
   const [error, setError] = useState(""), [busy, setBusy] = useState(false), [notice, setNotice] = useState("");
   const visible = host.library.filter(e => kind === "history" ? !!e.lastProgress : trackingOnly ? e.tracking : e.favorite)
-    .filter(e => host.prefs.mature || !host.plugins.find(p => p.meta.id === e.pluginId)?.meta.mature)
     .sort((a, b) => kind === "history" ? (b.lastProgress?.at || 0) - (a.lastProgress?.at || 0) : b.updatedAt - a.updatedAt);
   const checkUpdates = async () => {
     setBusy(true); setError(""); setNotice(""); let count = 0;
@@ -59,7 +58,7 @@ function AssociatedSources({ entry, open }: { entry: LibraryEntry; open: OpenMed
     void request<LibraryEntry[]>("library.sources.get", { pluginId: entry.pluginId, mediaId: entry.mediaId }).then(result => { if (live) setSources(result); }).catch(e => { if (live) setError(pluginError(e)); });
     return () => { live = false; request.cancelAll(); };
   }, [expanded, entry.pluginId, entry.mediaId, request]);
-  return <div><button aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>关联来源</button>{expanded && <><Notice error={error}/>{sources.filter(e => host.prefs.mature || !host.plugins.find(p => p.meta.id === e.pluginId)?.meta.mature).map(source => {
+  return <div><button aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>关联来源</button>{expanded && <><Notice error={error}/>{sources.map(source => {
     const plugin = host.sources.find(p => p.meta.id === source.pluginId);
     return <p key={libraryKey(source.pluginId, source.mediaId)}><button disabled={!plugin?.methods.includes("media.getDetail")} onClick={() => open(source.pluginId, source.mediaId)}>{source.item.title} · {plugin?.meta.name || source.pluginId}{plugin ? "" : " · 来源不可用"}</button></p>;
   })}{!sources.length && !error && <p className="hpp-muted">尚未关联其他来源</p>}</>}</div>;

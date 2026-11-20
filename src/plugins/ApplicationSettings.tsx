@@ -1,5 +1,5 @@
 import ProxySettings from "./ProxySettings";
-import { IBack, IChevR, IGrid, IMoon, ISun, IVolMute, IPlayF, IRefresh, ILockF, IHeart, IInfo } from "../icons";
+import { IBack, IChevR, IGrid, IMoon, ISun, IVolMute, IPlayF, IRefresh, IHeart, IInfo } from "../icons";
 import type { ReactNode } from "react";
 import { Toggle } from "../components/ui";
 import { useEffect, useRef, useState } from "react";
@@ -31,11 +31,11 @@ export default function ApplicationSettings({ onBack }: { onBack: () => void }) 
   return <div className="absolute inset-0 bg-bg flex flex-col legacy-settings">
     <header className="hpp-header">
       <button aria-label="返回" onClick={onBack}><IBack size={20} /></button>
-      <div className="flex items-center gap-2">
-        <h1>设置</h1>
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <h1 className="truncate">设置</h1>
       </div>
     </header>
-    <div className="flex-1 min-h-0 scroll-y px-4 md:px-6 pt-2 pb-10"><div className="max-w-[1080px]"><Notice error={error||app.error}/>
+    <div className="flex-1 min-h-0 scroll-y px-4 md:px-6 pt-2 pb-10"><div className="max-w-[680px] mx-auto"><Notice error={error||app.error}/>
       <Section title="外观"><Setting icon={app.theme==="dark"?<IMoon size={16}/>:<ISun size={16}/>} title="深色外观" description="切换应用的深色与浅色外观"><Toggle label="深色外观" on={app.theme==="dark"} onChange={on=>app.setTheme(on?"dark":"light")}/></Setting></Section>
       <Section title="播放">
         <Setting icon={<IVolMute size={16}/>} title="启动时静音" description="每次启动默认静音，下次启动生效"><Toggle label="启动时静音" on={app.muteOnStartup} onChange={app.setMuteOnStartup}/></Setting>
@@ -45,7 +45,6 @@ export default function ApplicationSettings({ onBack }: { onBack: () => void }) 
       <Section title="插件与内容">
         <Setting icon={<IRefresh size={16}/>} title="启动时自动检查插件更新" description="同一地址的自动检查至少间隔 24 小时"><Toggle label="启动时自动检查插件更新" on={host.updates.policy.checkOnStartup} disabled={clearing} onChange={checkOnStartup=>void updatePolicy({checkOnStartup})}/></Setting>
         <Setting icon={<IGrid size={16}/>} title="自动安装插件更新" description="在当前播放结束后自动应用更新"><Toggle label="自动安装插件更新" on={host.updates.policy.autoInstall} disabled={clearing} onChange={autoInstall=>void updatePolicy({autoInstall})}/></Setting>
-        <Setting icon={<ILockF size={16}/>} title="显示成人内容" description="控制来源中的成人内容展示"><Toggle label="显示成人内容" on={host.prefs.mature} onChange={mature=>host.setPrefs({mature})}/></Setting>
       </Section>
       <Section title="本地数据"><Setting icon={<IHeart size={16}/>} title="我的片库" description={`${host.library.filter(e=>e.favorite).length} 部收藏 · ${host.library.filter(e=>e.lastProgress).length} 条观看记录`}/>
         <details className="px-3.5 py-3 hpp-resolver-preferences" aria-label="解析器站点偏好"><summary className="text-[12.5px] cursor-pointer">解析器站点偏好</summary><div className="mt-3 text-xs text-mut">
@@ -104,5 +103,21 @@ function AppUpdateSetting() {
 }
 
 // Reused Settings row/section structure from 5f88442.
-function Section({title,children}:{title:string;children:ReactNode}) {return <><h2 className="text-[10.5px] font-semibold text-dim tracking-wide px-1 mt-4 mb-1.5">{title}</h2><section className="rounded-(--r-md) bg-s2 divide-y divide-s3">{children}</section></>;}
-function Setting({icon,title,description,children}:{icon:ReactNode;title:string;description:ReactNode;children?:ReactNode}) {return <div className="flex items-center gap-3 px-3.5 py-3"><span className="shrink-0 w-8 h-8 rounded-full bg-s3 flex items-center justify-center text-primary">{icon}</span><div className="flex-1 min-w-0"><div className="text-[12.5px] text-on">{title}</div><div className="text-[10.5px] text-mut">{description}</div></div><div className="shrink-0 flex">{children}</div></div>;}
+function Section({title,children}:{title:string;children:ReactNode}) {
+  return <>
+    <h2 className="text-[11px] font-semibold text-dim uppercase tracking-wider px-1 mt-5 mb-2">{title}</h2>
+    <section className="rounded-(--r-md) bg-s2 border border-black/5 dark:border-white/5 divide-y divide-black/5 dark:divide-white/5 shadow-xs overflow-hidden">{children}</section>
+  </>;
+}
+function Setting({icon,title,description,children}:{icon:ReactNode;title:string;description:ReactNode;children?:ReactNode}) {
+  return (
+    <div className="flex items-center gap-3.5 px-4 py-3 transition-colors hover:bg-white/[0.02]">
+      <span className="shrink-0 w-8 h-8 rounded-full bg-s3 flex items-center justify-center text-primary">{icon}</span>
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-medium text-on leading-snug">{title}</div>
+        <div className="text-[11px] text-mut leading-tight mt-0.5">{description}</div>
+      </div>
+      <div className="shrink-0 flex items-center">{children}</div>
+    </div>
+  );
+}

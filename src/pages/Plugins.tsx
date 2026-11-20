@@ -90,8 +90,8 @@ export default function Plugins({ onBack, focusId }: { onBack: () => void; focus
     <div className="hpp-page hpp-plugins-page">
       <header className="hpp-header">
         <button aria-label="返回" onClick={onBack}><IBack size={20} /></button>
-        <div className="flex items-center gap-2">
-          <h1>插件中心</h1>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <h1 className="truncate">插件中心</h1>
           <Tooltip text="统一管理所有数据源与解析器插件。" />
         </div>
       </header>
@@ -164,9 +164,9 @@ function PluginManagement({ plugins, reload, focusId = "" }: { plugins: Installe
         {/* 主体：统一单页插件列表，保持一份 */}
         <div className="hpp-unified-plugins">
           <div className="hpp-section-title">
-            <div className="flex items-center gap-2">
-              <h2>已安装插件</h2>
-              <span className="text-[12px] opacity-50 font-normal">{plugins.length} 个插件</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="truncate">已安装插件</h2>
+              <span className="text-[12px] opacity-50 font-normal shrink-0">{plugins.length} 个插件</span>
               <Tooltip text="当前可用的数据源与解析器列表。" />
             </div>
             {batchMode ? (
@@ -370,17 +370,17 @@ function PluginOptionsModal({
     <Modal open={true} onClose={onClose} width={560}>
       <div className="hpp-modal-box" aria-label={`${p.meta.name} 设置与日志`}>
         <div className="hpp-modal-header">
-          <div className="hpp-plugin-detail-header">
+          <div className="hpp-plugin-detail-header min-w-0 flex-1">
             <PluginIcon plugin={p} />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="truncate">{p.meta.name}</h3>
-                <span className="text-[11px] px-1.5 py-0.5 rounded font-mono bg-white/10 dark:bg-white/10 opacity-70">
+                <span className="text-[11px] px-1.5 py-0.5 rounded font-mono bg-white/10 dark:bg-white/10 opacity-70 shrink-0">
                   v{p.meta.version}
                 </span>
               </div>
               <div className="hpp-plugin-detail-header-sub">
-                <span className="text-xs opacity-50 font-mono">{p.meta.id}</span>
+                <span className="text-xs opacity-50 font-mono truncate">{p.meta.id}</span>
               </div>
             </div>
           </div>
@@ -649,13 +649,13 @@ function PluginDetailModal({
     <Modal open={true} onClose={onClose} width={560}>
       <div className="hpp-modal-box" aria-label={`${plugin.meta.name} 详情`}>
         <div className="hpp-modal-header">
-          <div className="hpp-plugin-detail-header">
+          <div className="hpp-plugin-detail-header min-w-0 flex-1">
             <PluginIcon plugin={plugin} />
-            <div>
-              <h3>{plugin.meta.name}</h3>
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate">{plugin.meta.name}</h3>
               <div className="hpp-plugin-detail-header-sub">
                 <span className={`hpp-status ${plugin.status}`}>{statuses[plugin.status]}</span>
-                <span className="text-xs opacity-50">{kindText}</span>
+                <span className="text-xs opacity-50 truncate">{kindText}</span>
               </div>
             </div>
           </div>
