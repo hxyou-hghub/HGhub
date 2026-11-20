@@ -41,7 +41,7 @@ function Application() {
     {!isMobile&&!app.watching&&<DesktopTitleBar collapsed={collapsed} onToggle={()=>setCollapsed(v=>!v)}/>}
     <div className="relative flex-1 min-h-0 flex">{!isMobile&&!app.theater&&!app.watching&&<DesktopRail collapsed={collapsed}/>}<main className={`relative flex-1 min-w-0 overflow-hidden win-main ${app.watching?"is-watching-main":app.theater?"is-theater-main":""}`}>
       <div className="absolute inset-0" inert={app.tab!=="home"||!!top} hidden={app.tab!=="home"||!!top} style={{bottom:isMobile&&!top&&!app.fs&&!app.clean&&!app.watching?"calc(40px + var(--sab, 0px))":0}}>
-        <ImmersiveHome active={app.tab==="home"&&!top} open={open} manage={manage} settings={()=>app.push({kind:"settings"})}/>
+        <ImmersiveHome active={app.tab==="home"&&!top} open={open} manage={manage}/>
       </div>
       <div className="absolute inset-0" inert={!!top} hidden={app.tab==="home"} style={{bottom:isMobile&&!top?"calc(40px + var(--sab, 0px))":0}}>{app.tab!=="home"&&(!top||top.kind==="media")&&(app.tab==="category"?<PluginCategory open={open} manage={manage} openContent={(kind,pluginId)=>app.push({kind,pluginId})}/>:app.tab==="search"?<PluginSearch open={open} manage={manage}/>:<LibraryPage open={open} manage={manage} settings={()=>app.push({kind:"settings"})}/>)}</div>
       {app.stack.map((page,i)=><div key={page.key} className={`absolute inset-0 ${page.kind==="media"?"":"bg-bg"} ${i===app.stack.length-1?"z-30":i===app.stack.length-2&&top?.kind==="media"&&!app.watching?"pointer-events-none":"invisible pointer-events-none"}`}>

@@ -25,7 +25,7 @@ export function PlaybackWindowActions() {
 }
 
 export function DesktopTitleBar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
-  const { theme, setTheme, setTab, platform } = useStore();
+  const { theme, setTheme, platform } = useStore();
   const [maxed, setMaxed] = useState(false);
   /* macOS 原生全屏：红绿灯被系统隐藏，标题栏左侧 84px 让位要收回（见 index.css） */
   const [nativeFs, setNativeFs] = useState(false);
@@ -55,9 +55,6 @@ export function DesktopTitleBar({ collapsed, onToggle }: { collapsed: boolean; o
       <div className="win-drag-region" data-tauri-drag-region />
       <button className="win-caption-tool" aria-label="切换外观" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
         {theme === "dark" ? <ISun size={17} strokeWidth={1.7} /> : <IMoon size={17} strokeWidth={1.7} />}
-      </button>
-      <button className="win-caption-tool" aria-label="搜索" onClick={() => setTab("search")}>
-        <ISearch size={17} strokeWidth={1.7} />
       </button>
       {/* macOS 用系统自带的红绿灯（titleBarStyle: Overlay），不画自绘按钮 */}
       {platform !== "macos" && (

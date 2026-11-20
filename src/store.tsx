@@ -26,6 +26,7 @@ function useApplication() {
   const [theater, setTheater] = useState(false), [fs, setFs] = useState(false), [clean, setClean] = useState(false);
   const [strictSecurity, setStrict] = useState(true), [strictSecurityReady, setSecurityReady] = useState(false), [securityPending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [sourceErrors, setSourceErrors] = useState<Record<string, string>>({});
   useEffect(() => {
     document.documentElement.classList.toggle("theme-light", theme === "light"); document.documentElement.style.colorScheme = theme;
     try { localStorage.setItem("hpp.theme", JSON.stringify(theme)); localStorage.setItem("hpp.startMuted", JSON.stringify(muteOnStartup)); localStorage.setItem("hpp.volume", JSON.stringify(volume)); localStorage.setItem("hpp.startTab", JSON.stringify(startTab)); } catch { setError("无法保存应用偏好"); }
@@ -36,7 +37,7 @@ function useApplication() {
   const push = useCallback((p: PageInput) => setStack(old => [...old, { ...p, key: crypto.randomUUID() }]), []);
   const replace = useCallback((p: PageInput) => setStack(old => [...old.slice(0, -1), { ...p, key: crypto.randomUUID() }]), []);
   const pop = useCallback(() => setStack(old => old.slice(0, -1)), []);
-  return { watching, setWatching, platform, theme, setTheme, startTab, setStartTab, tab, setTab, stack, push, replace, pop, muteOnStartup, setMuteOnStartup, volume, setVolume, muted, setMuted, theater, setTheater, fs, setFs, clean, setClean, strictSecurity, strictSecurityReady, securityPending, setStrictSecurity, error };
+  return { watching, setWatching, platform, theme, setTheme, startTab, setStartTab, tab, setTab, stack, push, replace, pop, muteOnStartup, setMuteOnStartup, volume, setVolume, muted, setMuted, theater, setTheater, fs, setFs, clean, setClean, strictSecurity, strictSecurityReady, securityPending, setStrictSecurity, error, sourceErrors, setSourceErrors };
 }
 const Context = createContext<ReturnType<typeof useApplication>>(null!);
 export const useStore = () => useContext(Context);

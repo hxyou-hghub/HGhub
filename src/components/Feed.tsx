@@ -800,7 +800,7 @@ export default function Feed({media, position, active=true, preparing=false, err
                   {onFavorite&&<button onClick={onFavorite} aria-label={favorite?"取消本地收藏":"本地收藏"} aria-pressed={favorite}><span>{favorite?<IHeartF size={25}/>:<IHeart size={25}/>}</span><small>{favorite?"已收藏":"收藏"}</small></button>}
                   <button aria-label="作品详情" onClick={showDetails}><span className="hg-info-glyph">ⓘ</span><small>详情</small></button>
                 </div>
-                <div className="hg-preview-copy"><h1>{title}</h1><div className="hg-preview-meta"><span>{author}</span>{score!==undefined&&<strong>评分 {score.toFixed(1)}</strong>}</div><button onClick={showDetails} className="hg-preview-synopsis"><span>{description || "发现下一部值得看的故事"}</span><b>展开</b></button></div>
+                <div className="hg-preview-copy"><div className="hg-preview-title-row"><h1>{title}</h1><div className="hg-preview-meta"><span>{author}</span>{score!==undefined&&<strong>评分 {score.toFixed(1)}</strong>}</div></div><button onClick={showDetails} className="hg-preview-synopsis"><span>{description || "发现下一部值得看的故事"}</span><b>展开</b></button></div>
                 <div className="hg-preview-footer"><button className="hg-preview-watch" onClick={showDetails}><IPlayF size={17}/><span>观看完整作品{episodeCount ? ` · 共 ${episodeCount} 集` : ""}</span><IChevR size={20}/></button>
                   <input aria-label="预览进度" type="range" min={0} max={duration||1} step=".1" disabled={!duration} value={Math.min(time,duration||1)} onChange={e=>{videoRef.current?.seek(Number(e.target.value));setTime(Number(e.target.value));}} style={{"--progress":`${barProgress*100}%`} as React.CSSProperties}/>
                 </div>
@@ -852,12 +852,16 @@ export default function Feed({media, position, active=true, preparing=false, err
   );
 }
 
-function HomeSourceSelect() {
+export function HomeSourceSelect({ errors }: { errors?: Record<string, string> } = {}) {
   const host = useHost(), sources = playbackSources(host.sources), buttonRef = useRef<HTMLButtonElement>(null);
+  const store = useStore(); errors = errors ?? store.sourceErrors;
   const [open, setOpen] = useState(false), [pos, setPos] = useState({ top: 0, left: 0 });
-  const mode = host.prefs.homeMode;
-  const selected = sources.filter(p => host.prefs.homeIds.includes(p.meta.id));
-  const label = mode === "all" ? `全部 ${sources.length} 个片源` : selected.length ? selected.map(p => p.meta.name).join("、") : "选择片源";
+  const [draftMode, setDraftMode] = useState(host.prefs.homeMode);
+  const [draftIds, setDraftIds] = useState(host.prefs.homeIds);
+  const mode = draftMode;
+  const selected = sources.filter(p => draftIds.includes(p.meta.id));
+  const committed = sources.filter(p => host.prefs.homeIds.includes(p.meta.id));
+  const label = host.prefs.homeMode === "all" ? `全部 ${sources.length} 个片源` : committed.length ? committed.map(p => p.meta.name).join("、") : "选择片源";
   const openList = () => {
     const box = buttonRef.current?.getBoundingClientRect();
     if (box) {
@@ -865,30 +869,36 @@ function HomeSourceSelect() {
       const left = Math.min(box.left, window.innerWidth - menuW - margin);
       setPos({ top: box.bottom + 6, left: Math.max(margin, left) });
     }
+    setDraftMode(host.prefs.homeMode);
+    setDraftIds(host.prefs.homeIds);
     setOpen(true);
   };
+  const commit = (nextMode: typeof draftMode, nextIds: string[]) => {
+    const sameIds = nextIds.length === host.prefs.homeIds.length && nextIds.every(id => host.prefs.homeIds.includes(id));
+    if (nextMode === host.prefs.homeMode && sameIds) return;
+    void host.setPrefs({ homeMode: nextMode, homeIds: nextIds });
+  };
+  const close = () => { setOpen(false); commit(draftMode, draftIds); };
   const pick = (id: string) => {
-    if (mode === "single") {
-      if (host.prefs.homeIds[0] === id) return;
-      void host.setPrefs({ homeMode: "single", homeIds: [id] });
-      setOpen(false);
-      return;
-    }
-    const ids = selected.some(p => p.meta.id === id) ? host.prefs.homeIds.filter(v => v !== id) : [...host.prefs.homeIds.filter(v => sources.some(p => p.meta.id === v)), id];
-    void host.setPrefs({ homeMode: "multiple", homeIds: ids });
+    if (mode === "single") { if (draftIds[0] !== id) setDraftIds([id]); return; }
+    setDraftIds(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev.filter(v => sources.some(p => p.meta.id === v)), id]);
   };
-  const setMode = (next: "single" | "multiple" | "all") => {
-    if (next === "all") { void host.setPrefs({ homeMode: "all" }); return; }
-    const homeIds = next === "single" ? host.prefs.homeIds.slice(0, 1) : host.prefs.homeIds;
-    void host.setPrefs({ homeMode: next, homeIds });
+  const setMode = (next: typeof draftMode) => {
+    setDraftMode(next);
+    if (next === "single") setDraftIds(prev => prev.slice(0, 1));
   };
-  useEffect(() => { if (!open) return; const close = () => setOpen(false); window.addEventListener("click", close); return () => window.removeEventListener("click", close); }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const handler = () => { setOpen(false); commit(draftMode, draftIds); };
+    window.addEventListener("click", handler);
+    return () => window.removeEventListener("click", handler);
+  }, [open, draftMode, draftIds]);
   return <>
-    <button ref={buttonRef} type="button" className="hg-preview-source" aria-haspopup="listbox" aria-expanded={open} onClick={e => { e.stopPropagation(); open ? setOpen(false) : openList(); }}>{label}<IChevronDown size={15}/></button>
-    {open && createPortal(<div className="hg-source-menu" role="listbox" aria-multiselectable={mode === "multiple"} style={{ top: pos.top, left: pos.left }} onClick={e => e.stopPropagation()}>
+    <button ref={buttonRef} type="button" className="hg-preview-source" aria-haspopup="listbox" aria-expanded={open} onClick={e => { e.stopPropagation(); open ? close() : openList(); }}>{label}<IChevronDown size={15}/></button>
+    {open && createPortal(<div className="hg-source-menu" role="listbox" aria-multiselectable={mode === "multiple"} style={{ top: pos.top, left: pos.left }} onClick={e => e.stopPropagation()} onWheel={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
       <div className="hg-source-modes" role="group" aria-label="片源选择模式">{([["single", "单选"], ["multiple", "多选"], ["all", "全部"]] as const).map(([id, title]) => <button key={id} type="button" aria-pressed={mode === id} onClick={() => setMode(id)}>{title}</button>)}</div>
-      {mode !== "all" && sources.map(p => <button key={p.meta.id} type="button" role="option" aria-selected={selected.some(s => s.meta.id === p.meta.id)} onClick={() => pick(p.meta.id)}><span className="hg-source-check">{selected.some(s => s.meta.id === p.meta.id) ? "✓" : ""}</span>{p.meta.name}</button>)}
-      {mode === "all" && <p className="hg-source-empty">随机播放全部 {sources.length} 个片源。</p>}
+      {mode !== "all" && sources.map(p => <button key={p.meta.id} type="button" role="option" aria-selected={selected.some(s => s.meta.id === p.meta.id)} onClick={() => pick(p.meta.id)}><span className="hg-source-check">{selected.some(s => s.meta.id === p.meta.id) ? "✓" : ""}</span><span className="hg-source-name">{p.meta.name}</span>{errors?.[p.meta.id] && <span className="hg-source-warn" title={errors[p.meta.id]}>暂不可用</span>}</button>)}
+      {mode === "all" && sources.map(p => <div key={p.meta.id} className="hg-source-item" role="option" aria-selected={true}><span className="hg-source-name">{p.meta.name}</span>{errors?.[p.meta.id] && <span className="hg-source-warn" title={errors[p.meta.id]}>暂不可用</span>}</div>)}
       {!sources.length && <p className="hg-source-empty">还没有可播放的片源。</p>}
     </div>, document.body)}
   </>;

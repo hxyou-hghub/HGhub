@@ -28,7 +28,7 @@
 .hpp-category-preview h2{font-size:16px;font-weight:700;letter-spacing:0}
 .hpp-category-preview header p{font-size:11px;color:var(--p-mut);margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .hpp-category-preview header button{background:transparent;font-size:12px;color:var(--p-mut)}
-.hpp-preview-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:5px;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:var(--p-s3) transparent}
+.hpp-preview-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:5px;scroll-snap-type:x proximity}
 .hpp-preview-strip .hpp-cards{display:contents}
 .hpp-preview-strip .hpp-media-card{flex:0 0 126px;scroll-snap-align:start}
 .hpp-poster{border-radius:6px;aspect-ratio:3/4;background:linear-gradient(145deg,var(--p-s3),var(--p-s1))}
@@ -50,7 +50,7 @@
 .hpp-empty>svg{opacity:.6;color:var(--p-primary);margin-bottom:5px}
 .hpp-empty h2{font-size:20px;letter-spacing:0}
 .hpp-empty p{max-width:340px}
-.win-sidebar{width:208px;background:var(--p-canvas)}
+.win-sidebar{width:198px;background:var(--p-canvas)}
 .win-sidebar-inner{padding-top:10px}
 .win-nav-items{gap:5px}
 .win-account.is-selected{background:var(--p-tint);color:var(--p-primary)}

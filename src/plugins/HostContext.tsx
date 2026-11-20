@@ -7,7 +7,7 @@ import { emptyUpdateState, pendingUpdates, tickPluginUpdates, type UpdateState }
 export interface LocalProgress { pluginId: string; mediaId: string; playlistId?: string; episodeId: string; positionSec: number; durationSec?: number; at: number }
 export interface LibraryEntry { pluginId: string; mediaId: string; item: MediaItem; favorite: boolean; tracking: boolean; updatedAt: number; lastProgress?: LocalProgress; latestLabel?: string }
 export interface Preferences { homeMode: "all" | "single" | "multiple"; homeIds: string[]; order: string[]; hiddenHomeIds: string[]; hiddenSections: string[]; sectionOrder: Record<string, string[]>; searchMode: "all" | "single" | "multiple"; searchIds: string[]; playbackFallback: boolean; autoNext: boolean }
-const defaults: Preferences = { homeMode: "all", homeIds: [], order: [], hiddenHomeIds: [], hiddenSections: [], sectionOrder: {}, searchMode: "all", searchIds: [], playbackFallback: true, autoNext: true };
+const defaults: Preferences = { homeMode: "single", homeIds: [], order: [], hiddenHomeIds: [], hiddenSections: [], sectionOrder: {}, searchMode: "all", searchIds: [], playbackFallback: true, autoNext: true };
 function readPreferences(): Preferences {
   try {
     const raw = JSON.parse(localStorage.getItem("hpp.preferences") || "{}"), p = { ...defaults };

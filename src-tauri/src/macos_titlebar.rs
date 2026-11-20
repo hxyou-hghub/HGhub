@@ -86,7 +86,7 @@ pub fn create_main_window(app: &tauri::App) -> tauri::Result<()> {
         return Ok(());
     };
 
-    let mut builder = WebviewWindowBuilder::from_config(app.handle(), &config)?;
+    let mut builder = WebviewWindowBuilder::from_config(app.handle(), &config)?.maximized(true);
     let metrics = MainThreadMarker::new().and_then(measure_buttons);
     if let Some(metrics) = metrics {
         let x = config.traffic_light_position.as_ref().map_or(14.0, |p| p.x);

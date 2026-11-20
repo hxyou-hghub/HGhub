@@ -332,7 +332,7 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
             aria-label="调试模式"
             title="调试模式：开启后允许插件与媒体请求访问局域网与本机，便于调试自建服务。开发态默认开启，生产态默认关闭。"
             disabled={!app.strictSecurityReady || app.securityPending}
-            onClick={() => void app.setStrictSecurity(app.strictSecurity).catch(e => setError(pluginError(e)))}
+            onClick={() => void app.setStrictSecurity(!app.strictSecurity).catch(e => setError(pluginError(e)))}
             className={`hpp-switch-pill ${!app.strictSecurity ? "is-on" : ""}`}
           >
             <span className="hpp-switch-knob" />
@@ -428,7 +428,6 @@ export default function PluginDistribution({ plugins, reload }: { plugins: Insta
             <button className="hpp-modal-close" onClick={() => replacePreview(null)} aria-label="关闭">✕</button>
           </div>
           <div className="hpp-modal-body">
-            {preview.description && <p className="hpp-muted mb-2 text-xs">{preview.description}</p>}
             {preview.subscriptions?.map(subscription => (
               <button key={subscription.location} className="mb-2 text-xs" disabled={busy || host.updates.subscriptions.some(s => s.location === subscription.location)} onClick={() => void run(async () => {
                 await request("subscriptions.save", { token: preview.token, location: subscription.location });

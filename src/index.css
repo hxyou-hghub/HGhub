@@ -105,13 +105,17 @@ img, video { -webkit-user-drag: none; }
 button { cursor: pointer; font-family: inherit; }
 
 /* ——— 原生质感滚动条 ——— */
-.scroll-y { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--p-s4) transparent; }
+/* 全局默认：所有滚动容器同一套细窄圆条（Firefox 用属性，WebKit 用伪元素） */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--p-s4) 97%, var(--p-on)) transparent; }
+*::-webkit-scrollbar { width: 5px; height: 5px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--p-s4) 97%, var(--p-on)); border-radius: 99px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--p-dim); }
+*::-webkit-scrollbar-corner { background: transparent; }
+
+.scroll-y { overflow-y: auto; overscroll-behavior: contain; }
 .scroll-x { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
 .scroll-x::-webkit-scrollbar { display: none; }
-.scroll-y::-webkit-scrollbar { width: 5px; }
-.scroll-y::-webkit-scrollbar-track { background: transparent; }
-.scroll-y::-webkit-scrollbar-thumb { background: var(--p-s4); border-radius: 99px; }
-.scroll-y::-webkit-scrollbar-thumb:hover { background: var(--p-dim); }
 .no-bar { scrollbar-width: none; }
 .no-bar::-webkit-scrollbar { display: none; }
 
@@ -195,7 +199,7 @@ input[type="range"].hg-range::-webkit-slider-thumb { -webkit-appearance: none; w
 .win-caption-buttons button:hover { background: var(--p-hover); color: var(--p-on); }
 .win-caption-buttons .win-close:hover { background: #c42b1c; color: #fff; }
 
-.win-sidebar { width: 236px; flex: none; background: var(--p-bg); display: flex; flex-direction: column; }
+.win-sidebar { width: 198px; flex: none; background: var(--p-bg); display: flex; flex-direction: column; }
 .win-sidebar.is-compact { width: 72px; }
 .win-sidebar-inner { display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 14px; height: 100%; }
 .win-search-launch {
