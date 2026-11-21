@@ -2,6 +2,8 @@ mod commands;
 mod logging;
 #[cfg(target_os = "macos")]
 mod macos_titlebar;
+#[cfg(target_os = "windows")]
+mod mouse_back;
 mod network_policy;
 mod plugins;
 #[cfg(target_os = "windows")]
@@ -18,8 +20,7 @@ pub fn run() {
             let handle = api.register_android_plugin("com.hghub.player", "LoginWebViewPlugin")?;
             app.manage(android_login::AndroidLogin(handle));
             Ok(())
-        }).build());
-    builder
+        }).build());    builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(
@@ -51,6 +52,8 @@ pub fn run() {
             // plugin command; eager initialization would expose an incorrect env.
             #[cfg(target_os = "macos")]
             macos_titlebar::create_main_window(app)?;
+            #[cfg(target_os = "windows")]
+            mouse_back::install(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

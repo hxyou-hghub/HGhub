@@ -22,6 +22,7 @@ import "./plugins/watch-experience.css";
 import ImmersiveHome from "./plugins/ImmersiveHome";
 import { runBack } from "./back";
 import { addPluginListener, invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 export default function App() { return <HostProvider><Application/></HostProvider>; }
 function Application() {
   const app=useStore(),host=useHost(),[collapsed,setCollapsed]=useState(false),top=app.stack[app.stack.length-1];
@@ -30,6 +31,8 @@ function Application() {
   backRef.current=()=>{if(runBack(10))return;if(app.fs){app.setFs(false);return;}if(document.fullscreenElement){void document.exitFullscreen();return;}if(runBack())return;if(app.stack.length)app.pop();else if(app.tab!=="home")app.setTab("home");else void invoke("plugin:app|exit",{code:0}).catch(()=>{});};
   useEffect(()=>{if(app.tab==="category")setCategoryVisited(true);},[app.tab]);
   useEffect(()=>{if(app.platform!=="android")return;let disposed=false;let listener:{unregister:()=>Promise<void>}|undefined;void addPluginListener("app","back-button",()=>backRef.current()).then(l=>{if(disposed)void l.unregister();else listener=l;}).catch(()=>{});return()=>{disposed=true;void listener?.unregister();};},[app.platform]);
+  // 鼠标侧键返回：原生窗口子类化拦截 WM_XBUTTONUP，此处复用与 Android 返回键一致的返回栈。
+  useEffect(()=>{let disposed=false;let unlisten:(()=>void)|undefined;void listen("app://mouse-back",()=>backRef.current()).then(fn=>{if(disposed)fn();else unlisten=fn;}).catch(()=>{});return()=>{disposed=true;unlisten?.();};},[]);
   const manage=(focusId?:string)=>{host.clearAuth();app.push({kind:"plugins",focusId});};
   const open=(pluginId:string,mediaId:string,autoPlay?:boolean)=>app.push({kind:"media",pluginId,mediaId,autoPlay});
   useEffect(()=>{const fn=(e:KeyboardEvent)=>{
